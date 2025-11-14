@@ -12,6 +12,8 @@ An AI-powered conversational agent that provides comprehensive cryptocurrency an
 - **Multi-turn Conversations**: Maintains context across the conversation for follow-up questions
 - **Analysis Memory**: Remembers previous analyses for comparisons and references
 - **Guardrails**: Stays focused on cryptocurrency domain with polite redirection
+- **Ambiguity Handling**: Asks clarifying questions when queries are unclear or ambiguous
+- **General Topic Support**: Handles both specific cryptocurrency queries and general blockchain/crypto technology topics
 
 ### Analysis Types Implemented
 
@@ -91,11 +93,15 @@ The system is built with a modular architecture:
 
 ### Component Details
 
-1. **CLI Interface** (`main.py`): Rich console interface with markdown support
-2. **Agent** (`src/agent.py`): LangChain-based conversational agent with OpenAI Functions
-3. **Data Fetcher** (`src/data_fetcher.py`): API integration and data retrieval with caching
-4. **Analyzers** (`src/analyzers.py`): Specialized analysis modules for each dimension
-5. **Memory System**: ConversationBufferMemory for context retention
+1. **CLI Interface** (`src/ui/cli.py`): Rich console interface with markdown support
+2. **Agent** (`src/agents/agent.py`): LangChain-based conversational agent with OpenAI Functions
+3. **Repository** (`src/repositories/coin_repository.py`): API integration and data retrieval with caching
+4. **Analyzers** (`src/analyzers/`): Specialized analysis modules for each dimension:
+   - `fundamental_analyzer.py`: Fundamental analysis
+   - `price_analyzer.py`: Price and trend analysis
+   - `sentiment_analyzer.py`: Sentiment and social metrics analysis
+   - `technical_analyzer.py`: Technical indicators analysis
+5. **Memory System**: Conversation history and analysis history for context retention
 
 See [ARCHITECTURE.md](ARCHITECTURE.md) for detailed architecture documentation.
 
@@ -107,14 +113,9 @@ See [ARCHITECTURE.md](ARCHITECTURE.md) for detailed architecture documentation.
 
 ## Setup Instructions
 
-### 1. Clone the Repository
 
-```bash
-git clone <repository-url>
-cd crypto-analysis-agent
-```
 
-### 2. Create Virtual Environment
+### 1. Create Virtual Environment
 
 ```bash
 # Create virtual environment
@@ -127,13 +128,13 @@ venv\Scripts\activate
 source venv/bin/activate
 ```
 
-### 3. Install Dependencies
+### 2. Install Dependencies
 
 ```bash
 pip install -r requirements.txt
 ```
 
-### 4. Configure API Keys
+### 3. Configure API Keys
 
 Create a `.env` file in the project root:
 
@@ -149,10 +150,10 @@ OPENAI_API_KEY=sk-your-actual-api-key-here
 - `OPENAI_API_KEY`: Your OpenAI API key (get it from https://platform.openai.com/api-keys)
 
 **Optional:**
+- `NEWSAPI_KEY`: NewsAPI key for cryptocurrency and blockchain news features (get it from https://newsapi.org/)
 - CoinGecko API is free and doesn't require a key for basic usage
-- Additional API keys can be added for enhanced features (CoinMarketCap, NewsAPI)
 
-### 5. Run the Application
+### 4. Run the Application
 
 ```bash
 python main.py
@@ -211,33 +212,33 @@ You: What about Ethereum?
 Agent: [Understands context and provides Ethereum's RSI]
 ```
 
-## 🎯 Supported Commands
+### Ambiguity Handling
 
-While in the chat interface:
+```
+You: Tell me about ETH
 
-- **Natural questions**: Ask anything about cryptocurrencies
-- **`help`**: Display help information
-- **`clear`**: Reset conversation memory
-- **`exit`** or **`quit`**: Exit the application
+Agent: I'd be happy to help! When you say 'Tell me about ETH', would you like:
+- A comprehensive analysis (fundamental, price, sentiment, technical)?
+- Just the current price and market data?
+- Recent news articles?
+- A specific type of analysis?
+Please let me know what you're most interested in!
 
-## 🔧 Configuration
+You: Comprehensive analysis
 
-### Model Selection
-
-The agent automatically tries to use GPT-4 and falls back to GPT-3.5-turbo if GPT-4 is not available.
-
-To force a specific model, edit `main.py`:
-
-```python
-agent = CryptoAnalysisAgent(openai_api_key, model="gpt-3.5-turbo")
+Agent: [Performs comprehensive analysis]
 ```
 
-### Cache Duration
+### General Blockchain Topics
 
-API responses are cached for 5 minutes by default. To change this, edit `src/data_fetcher.py`:
+```
+You: Provide me some news about blockchain
 
-```python
-self.cache_duration = 300  # Change to desired seconds
+Agent: [Fetches general blockchain technology news articles]
+
+You: What's happening with DeFi?
+
+Agent: [Searches for DeFi-related news and information]
 ```
 
 ## Data Sources
@@ -250,6 +251,11 @@ self.cache_duration = 300  # Change to desired seconds
 - **Alternative.me API**: Fear & Greed Index
   - Free public API
   - No authentication required
+
+- **NewsAPI**: News articles for cryptocurrencies and blockchain topics
+  - Optional API key (set `NEWSAPI_KEY` in `.env`)
+  - Provides: Recent news articles, media coverage, blockchain technology news
+  - Supports both specific cryptocurrency queries and general blockchain topics
 
 ## 🧪 Example Conversations
 
@@ -311,17 +317,38 @@ faster-growing social engagement...
 
 ```
 crypto-analysis-agent/
-├── main.py                 # CLI interface entry point
-├── requirements.txt        # Python dependencies
-├── env.template           # Environment variable template
-├── .gitignore            # Git ignore rules
-├── README.md             # This file
-├── ARCHITECTURE.md       # Detailed architecture documentation
+├── main.py                    # Application entry point
+├── requirements.txt           # Python dependencies
+├── env.template              # Environment variable template
+├── .gitignore               # Git ignore rules
+├── README.md                # This file
+├── ARCHITECTURE.md          # Detailed architecture documentation
 └── src/
-    ├── __init__.py       # Package initialization
-    ├── agent.py          # LangChain agent implementation
-    ├── data_fetcher.py   # API integration and data fetching
-    └── analyzers.py      # Analysis modules (4 types)
+    ├── __init__.py          # Package initialization
+    ├── agents/              # Agent implementation
+    │   ├── agent.py         # LangChain agent class
+    │   ├── tools.py         # Agent tools and functions
+    │   └── prompts.py       # System prompts
+    ├── analyzers/            # Analysis modules
+    │   ├── fundamental_analyzer.py
+    │   ├── price_analyzer.py
+    │   ├── sentiment_analyzer.py
+    │   └── technical_analyzer.py
+    ├── api/                  # API clients
+    │   ├── coingecko_client.py
+    │   ├── fear_greed_client.py
+    │   └── newsapi_client.py
+    ├── repositories/         # Data access layer
+    │   └── coin_repository.py
+    ├── services/             # Business logic
+    │   ├── coin_service.py
+    │   └── analysis_service.py
+    ├── ui/                   # User interface
+    │   └── cli.py
+    └── core/                 # Core utilities
+        ├── cache.py
+        ├── exceptions.py
+        └── interfaces.py
 ```
 
 ## 🚧 Limitations
@@ -331,101 +358,4 @@ crypto-analysis-agent/
 3. **Historical Data**: Limited to data available from CoinGecko
 4. **Sentiment Analysis**: Based on available social metrics (may not include all platforms)
 5. **Not Financial Advice**: This tool is for educational purposes only
-
-## 🔮 Future Enhancements
-
-Potential improvements and additional features:
-
-- [ ] Persistent conversation history across sessions
-- [ ] Comparative analysis tool for side-by-side token comparison
-- [ ] Integration with additional data sources (CoinMarketCap, Messari)
-- [ ] Advanced charting and visualization
-- [ ] Custom alerts and notifications
-- [ ] Portfolio tracking and analysis
-- [ ] Historical analysis playback
-- [ ] Evaluation metrics for analysis quality
-- [ ] Web interface (Streamlit or FastAPI)
-- [ ] Multi-language support
-
-## 🐛 Troubleshooting
-
-### "OPENAI_API_KEY not found"
-- Make sure you've created a `.env` file
-- Verify your API key is correctly set
-- Check that `python-dotenv` is installed
-
-### "Could not find cryptocurrency"
-- Check the spelling of the token name/symbol
-- Try alternative names (e.g., "BTC" vs "Bitcoin")
-- Ensure the token is listed on CoinGecko
-
-### "Rate limit exceeded"
-- Wait a minute and try again
-- CoinGecko free tier has rate limits
-- Consider implementing longer cache durations
-
-### "Model not found" or GPT-4 errors
-- The agent will automatically fall back to GPT-3.5-turbo
-- Verify your OpenAI account has access to the model
-- Check your API key has sufficient credits
-
-## 📝 Development
-
-### Running Tests
-
-#### Quick Test (No API calls)
-```bash
-# Test basic functionality and imports
-python test_quick.py
-```
-
-#### NewsAPI Integration Test
-```bash
-# Test NewsAPI integration (requires NEWSAPI_KEY in .env)
-python test_newsapi.py
-```
-
-#### Full Application Test
-```bash
-# Run the application and test interactively
-python main.py
-```
-
-#### Development Testing
-```bash
-# Install development dependencies
-pip install pytest pytest-cov
-
-# Run tests (when implemented)
-pytest tests/
-```
-
-### Code Style
-
-The project follows PEP 8 style guidelines. Use tools like `black` and `flake8`:
-
-```bash
-pip install black flake8
-black src/ main.py
-flake8 src/ main.py
-```
-
-## 📄 License
-
-This project is created as a take-home challenge submission. See the challenge document for specific terms.
-
-## 🙏 Acknowledgments
-
-- **CoinGecko** for providing comprehensive cryptocurrency data API
-- **OpenAI** for GPT models powering the conversational interface
-- **LangChain** for agent orchestration framework
-- **Alternative.me** for Fear & Greed Index data
-
-## 📧 Support
-
-For issues, questions, or suggestions related to this project, please refer to the challenge submission guidelines.
-
----
-
-**Disclaimer**: This tool provides educational information only and should not be considered financial advice. Cryptocurrency investments carry significant risk. Always conduct your own research (DYOR) before making investment decisions.
 
