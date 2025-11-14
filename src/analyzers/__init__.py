@@ -1,9 +1,9 @@
 """Analysis modules for different types of cryptocurrency analysis."""
 
-from .fundamental import FundamentalAnalyzer
-from .price import PriceAnalyzer
-from .sentiment import SentimentAnalyzer
-from .technical import TechnicalAnalyzer
+from .fundamental_analyzer import FundamentalAnalyzer
+from .price_analyzer import PriceAnalyzer
+from .sentiment_analyzer import SentimentAnalyzer
+from .technical_analyzer import TechnicalAnalyzer
 
 __all__ = [
     "FundamentalAnalyzer",

@@ -34,7 +34,7 @@ class SentimentAnalyzer(BaseAnalyzer):
             # This provides symbol and is reused by get_community_data() and get_market_data()
             coin_data = self.repository.get_coin_data(coin_id)
             coin_symbol = coin_data.get("symbol", "").upper()
-            
+
             # These methods internally call get_coin_data() but use cached data
             community_data = self.repository.get_community_data(coin_id)
             market_data = self.repository.get_market_data(coin_id)

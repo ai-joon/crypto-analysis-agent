@@ -78,11 +78,11 @@ class CoinService:
         coin_info = self.get_coin_info(query)
         coin_name = coin_info["name"]
         coin_symbol = coin_info["symbol"]
-        
+
         news_articles = self.repository.get_news_articles(
             coin_name, coin_symbol, page_size=page_size
         )
-        
+
         return {
             **coin_info,
             "news_articles": news_articles,

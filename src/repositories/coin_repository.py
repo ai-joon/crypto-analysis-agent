@@ -69,15 +69,15 @@ class CoinRepository:
             APIError: If API request fails (including rate limits)
         """
         cache_key = f"coin_data_{coin_id}"
-        
+
         # Check cache first (even if expired) to avoid unnecessary API calls
         cached = self.cache.get(cache_key, allow_stale=True)
         if cached:
             progress.info("Using cached coin data")
             return cached
-        
+
         progress.info(f"Fetching data for {coin_id}...")
-        
+
         def fetch_with_error_handling():
             try:
                 return self.coingecko_client.get_coin_data(coin_id)
@@ -89,7 +89,7 @@ class CoinRepository:
                         progress.warning("Using cached data due to rate limit")
                         return cached
                 raise
-        
+
         return self.cache.get_or_fetch(cache_key, fetch_with_error_handling)
 
     def get_market_data(self, coin_id: str) -> Dict[str, Any]:
@@ -150,7 +150,7 @@ class CoinRepository:
             List of price data points
         """
         cache_key = f"historical_{coin_id}_{days}"
-        
+
         cached = self.cache.get(cache_key)
         if cached:
             return cached
@@ -251,7 +251,7 @@ class CoinRepository:
         if cached:
             progress.info(f"Using cached news for {coin_name}")
             return cached
-        
+
         # Cache news for 1 hour (news doesn't change that frequently)
         return self.cache.get_or_fetch(
             cache_key,
