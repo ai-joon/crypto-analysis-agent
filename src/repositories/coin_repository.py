@@ -69,13 +69,20 @@ class CoinRepository:
         data = self.get_coin_data(coin_id)
         market_data = data.get("market_data", {})
 
+        # Helper function to safely extract USD value
+        def get_usd_value(key: str):
+            value = market_data.get(key)
+            if isinstance(value, dict):
+                return value.get("usd")
+            return value
+
         return {
-            "current_price": market_data.get("current_price", {}).get("usd"),
-            "market_cap": market_data.get("market_cap", {}).get("usd"),
+            "current_price": get_usd_value("current_price"),
+            "market_cap": get_usd_value("market_cap"),
             "market_cap_rank": market_data.get("market_cap_rank"),
-            "total_volume": market_data.get("total_volume", {}).get("usd"),
-            "high_24h": market_data.get("high_24h", {}).get("usd"),
-            "low_24h": market_data.get("low_24h", {}).get("usd"),
+            "total_volume": get_usd_value("total_volume"),
+            "high_24h": get_usd_value("high_24h"),
+            "low_24h": get_usd_value("low_24h"),
             "price_change_24h": market_data.get("price_change_24h"),
             "price_change_percentage_24h": market_data.get("price_change_percentage_24h"),
             "price_change_percentage_7d": market_data.get("price_change_percentage_7d"),
@@ -83,10 +90,10 @@ class CoinRepository:
             "circulating_supply": market_data.get("circulating_supply"),
             "total_supply": market_data.get("total_supply"),
             "max_supply": market_data.get("max_supply"),
-            "ath": market_data.get("ath", {}).get("usd"),
-            "atl": market_data.get("atl", {}).get("usd"),
-            "ath_date": market_data.get("ath_date", {}).get("usd"),
-            "atl_date": market_data.get("atl_date", {}).get("usd"),
+            "ath": get_usd_value("ath"),
+            "atl": get_usd_value("atl"),
+            "ath_date": get_usd_value("ath_date"),
+            "atl_date": get_usd_value("atl_date"),
         }
 
     def get_historical_prices(self, coin_id: str, days: int = 30) -> List[Dict[str, Any]]:

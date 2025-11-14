@@ -27,8 +27,9 @@ def create_agent_tools(
 
     def get_coin_info(query: str) -> str:
         """
-        Get basic information about a cryptocurrency.
-        Use this when the user asks about a token for the first time.
+        Get basic information about a cryptocurrency (name, symbol, coin ID).
+        Use this when the user asks about a token for the first time or needs basic identification.
+        NOTE: This does NOT return price data. Use get_coin_price for price information.
 
         Args:
             query: The cryptocurrency name or symbol
@@ -40,6 +41,52 @@ def create_agent_tools(
             return f"Could not find cryptocurrency '{query}'. Please check the name or symbol and try again."
         except Exception as e:
             return f"Error fetching coin info: {str(e)}"
+
+    def get_coin_price(query: str) -> str:
+        """
+        Get current price and basic market data for a cryptocurrency.
+        Use this when the user asks about price, current value, market cap, volume, or 24h changes.
+        Examples: "What's the price of Bitcoin?", "How much is Sol worth?", "What's Ethereum's market cap?"
+
+        Args:
+            query: The cryptocurrency name or symbol
+        """
+        try:
+            data = coin_service.get_coin_price(query)
+            coin_name = data.get("name", query)
+            symbol = data.get("symbol", "")
+            current_price = data.get("current_price")
+            market_cap = data.get("market_cap")
+            volume_24h = data.get("total_volume")
+            change_24h = data.get("price_change_percentage_24h")
+            high_24h = data.get("high_24h")
+            low_24h = data.get("low_24h")
+            market_cap_rank = data.get("market_cap_rank")
+
+            result = f"**{coin_name} ({symbol}) - Current Market Data:**\n\n"
+            
+            if current_price is not None:
+                result += f"💰 **Current Price:** ${current_price:,.2f}\n"
+            
+            if market_cap is not None:
+                result += f"📊 **Market Cap:** ${market_cap:,.0f} (Rank: #{market_cap_rank or 'N/A'})\n"
+            
+            if volume_24h is not None:
+                result += f"📈 **24h Volume:** ${volume_24h:,.0f}\n"
+            
+            if change_24h is not None:
+                change_symbol = "📈" if change_24h >= 0 else "📉"
+                result += f"{change_symbol} **24h Change:** {change_24h:+.2f}%\n"
+            
+            if high_24h is not None and low_24h is not None:
+                result += f"🔺 **24h High:** ${high_24h:,.2f}\n"
+                result += f"🔻 **24h Low:** ${low_24h:,.2f}\n"
+
+            return result
+        except CoinNotFoundError:
+            return f"Could not find cryptocurrency '{query}'. Please check the name or symbol and try again."
+        except Exception as e:
+            return f"Error fetching price data: {str(e)}"
 
     def fundamental_analysis_tool(coin_query: str) -> str:
         """
@@ -228,7 +275,12 @@ def create_agent_tools(
         Tool(
             name="get_coin_info",
             func=get_coin_info,
-            description="Get basic information about a cryptocurrency. Use this first when encountering a new token.",
+            description="Get basic information about a cryptocurrency (name, symbol, coin ID only - NO PRICE). Use this first when encountering a new token to verify it exists. For price queries, use get_coin_price instead.",
+        ),
+        Tool(
+            name="get_coin_price",
+            func=get_coin_price,
+            description="Get current price and basic market data (price, market cap, volume, 24h changes). Use this when user asks about price, current value, 'how much is X worth', market cap, or 24h price changes. This is a quick lookup tool for current market data.",
         ),
         Tool(
             name="fundamental_analysis",

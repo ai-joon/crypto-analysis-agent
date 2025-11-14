@@ -39,3 +39,25 @@ class CoinService:
             "symbol": data.get("symbol", "").upper(),
         }
 
+    def get_coin_price(self, query: str) -> Dict[str, Any]:
+        """
+        Get current price and basic market data for a cryptocurrency.
+
+        Args:
+            query: Cryptocurrency name or symbol
+
+        Returns:
+            Dictionary with price and market data
+
+        Raises:
+            CoinNotFoundError: If coin cannot be found
+        """
+        coin_id = self.repository.get_coin_id(query)
+        market_data = self.repository.get_market_data(coin_id)
+        coin_info = self.get_coin_info(query)
+
+        return {
+            **coin_info,
+            **market_data,
+        }
+
