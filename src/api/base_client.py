@@ -15,14 +15,14 @@ logger = get_logger(__name__)
 class BaseAPIClient(ABC):
     """Base class for API clients with common request handling."""
 
-    def __init__(self, base_url: str, timeout: int = DEFAULT_TIMEOUT, max_retries: int = 3):
+    def __init__(self, base_url: str, timeout: int = DEFAULT_TIMEOUT, max_retries: int = 2):
         """
         Initialize API client.
 
         Args:
             base_url: Base URL for the API
             timeout: Request timeout in seconds
-            max_retries: Maximum number of retries for rate-limited requests
+            max_retries: Maximum number of retries for rate-limited requests (default: 2)
         """
         self.base_url = base_url.rstrip("/")
         self.timeout = timeout
@@ -53,13 +53,15 @@ class BaseAPIClient(ABC):
                 # Handle rate limiting (429) with retry
                 if response.status_code == 429:
                     if attempt < self.max_retries:
-                        # Calculate backoff: 2^attempt seconds (1s, 2s, 4s)
-                        backoff_time = 2 ** attempt
+                        # Calculate backoff: exponential with cap (1s, 2s, 4s, max 10s)
+                        backoff_time = min(2 ** attempt, 10)
                         retry_after = response.headers.get("Retry-After")
                         if retry_after:
                             try:
-                                backoff_time = int(retry_after)
-                            except ValueError:
+                                # Cap Retry-After to reasonable limit (max 10 seconds)
+                                retry_after_seconds = int(retry_after)
+                                backoff_time = min(retry_after_seconds, 10)
+                            except (ValueError, TypeError):
                                 pass
                         
                         logger.warning(
@@ -69,7 +71,7 @@ class BaseAPIClient(ABC):
                         time.sleep(backoff_time)
                         continue
                     else:
-                        # Max retries reached
+                        # Max retries reached - fail fast instead of waiting
                         raise APIError(
                             f"Rate limit exceeded for {url}. "
                             f"Please wait a few minutes before trying again. "
@@ -83,8 +85,12 @@ class BaseAPIClient(ABC):
                 
             except requests.exceptions.Timeout:
                 if attempt < self.max_retries:
-                    logger.warning(f"Request timeout for {url}. Retrying...")
-                    time.sleep(1)
+                    # Short backoff for timeouts (1-2 seconds)
+                    backoff = min(attempt + 1, 2)
+                    logger.warning(
+                        f"Request timeout for {url}. Retrying in {backoff}s..."
+                    )
+                    time.sleep(backoff)
                     continue
                 raise APIError(
                     f"Request to {url} timed out after {self.timeout}s",

@@ -6,15 +6,13 @@ import requests
 
 from src.core.exceptions import APIError
 from src.core.logging_config import get_logger
-from src.config.constants import DEFAULT_TIMEOUT
+from src.config.constants import DEFAULT_TIMEOUT, NEWSAPI_BASE_URL
 
 logger = get_logger(__name__)
 
 
 class NewsAPIClient:
     """Client for NewsAPI to fetch cryptocurrency news articles."""
-
-    BASE_URL = "https://newsapi.org/v2"
 
     def __init__(self, api_key: Optional[str] = None):
         """
@@ -85,7 +83,7 @@ class NewsAPIClient:
         }
 
         try:
-            url = f"{self.BASE_URL}/everything"
+            url = f"{NEWSAPI_BASE_URL}/everything"
             response = requests.get(
                 url, params=params, headers=self._get_headers(), timeout=self.timeout
             )

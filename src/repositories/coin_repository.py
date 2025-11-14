@@ -65,13 +65,17 @@ class CoinRepository:
         """
         cache_key = f"coin_data_{coin_id}"
         
+        # Check cache first (even if expired) to avoid unnecessary API calls
+        cached = self.cache.get(cache_key, allow_stale=True)
+        if cached:
+            return cached
+        
         def fetch_with_error_handling():
             try:
                 return self.coingecko_client.get_coin_data(coin_id)
             except APIError as e:
                 # If rate limited, try to return stale cache data
                 if e.status_code == 429:
-                    # Try to get from cache even if expired (stale data is better than error)
                     cached = self.cache.get(cache_key, allow_stale=True)
                     if cached:
                         logger.warning("Using cached data due to rate limit")
