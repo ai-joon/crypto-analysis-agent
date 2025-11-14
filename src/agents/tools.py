@@ -160,15 +160,44 @@ def create_agent_tools(
     def get_previous_analysis(coin_query: str, analysis_type: str = "all") -> str:
         """
         Retrieve previous analysis results for a cryptocurrency.
-        Use this when the user asks about something you analyzed earlier.
+        Use this when the user asks about something you analyzed earlier, references "earlier", 
+        "before", "what you said about", or asks follow-up questions about a previously analyzed token.
+        
+        If coin_query is ambiguous (like "it", "that token", "this"), try to infer from context
+        by checking which tokens have been analyzed. If multiple tokens exist, return info about all of them.
 
         Args:
-            coin_query: The cryptocurrency name or symbol
+            coin_query: The cryptocurrency name or symbol (can be "it", "that", etc. - will try to infer)
             analysis_type: Type of analysis to retrieve (fundamental, price, sentiment, technical, or all)
         """
         try:
-            info = coin_service.get_coin_info(coin_query)
-            coin_id = info["coin_id"]
+            # If query is ambiguous, check if we have any analysis history
+            ambiguous_terms = ["it", "that", "this", "the token", "that token", "this token"]
+            coin_query_lower = coin_query.lower().strip()
+            
+            # If ambiguous and we have history, try to infer
+            if coin_query_lower in ambiguous_terms and analysis_history:
+                # Return info about all analyzed tokens
+                if len(analysis_history) == 1:
+                    # Only one token analyzed, use it
+                    coin_id = list(analysis_history.keys())[0]
+                    history = analysis_history[coin_id]
+                    coin_name = history.get("name", coin_id)
+                else:
+                    # Multiple tokens - return summary
+                    result = "Multiple tokens have been analyzed. Here are the previous analyses:\n\n"
+                    for coin_id, history in analysis_history.items():
+                        coin_name = history.get("name", coin_id)
+                        result += f"\n{'='*60}\n{coin_name} ({coin_id}):\n"
+                        for atype in ["fundamental", "price", "sentiment", "technical"]:
+                            if atype in history:
+                                result += f"- {atype.capitalize()} analysis available\n"
+                    result += "\nPlease specify which token you're asking about, or I can show all analyses."
+                    return result
+            else:
+                # Normal lookup
+                info = coin_service.get_coin_info(coin_query)
+                coin_id = info["coin_id"]
 
             if coin_id not in analysis_history:
                 return f"No previous analysis found for {coin_query}. Please run an analysis first."
@@ -180,13 +209,17 @@ def create_agent_tools(
                 result = f"Previous analyses for {coin_name}:\n\n"
                 for atype in ["fundamental", "price", "sentiment", "technical"]:
                     if atype in history:
-                        result += f"\n{'='*60}\n{history[atype]}\n"
+                        result += f"\n{'='*60}\n{atype.capitalize()} Analysis:\n{history[atype]}\n"
                 return result
             elif analysis_type in history:
-                return history[analysis_type]
+                return f"{analysis_type.capitalize()} Analysis for {coin_name}:\n\n{history[analysis_type]}"
             else:
                 return f"No {analysis_type} analysis found for {coin_name}."
         except CoinNotFoundError:
+            # If not found and we have history, suggest analyzed tokens
+            if analysis_history:
+                analyzed = ", ".join([h.get("name", cid) for cid, h in analysis_history.items()])
+                return f"Could not find cryptocurrency '{coin_query}'. Previously analyzed tokens: {analyzed}. Please specify one of these or provide the correct token name."
             return f"Could not find cryptocurrency '{coin_query}'."
         except Exception as e:
             return f"Error retrieving previous analysis: {str(e)}"
@@ -220,7 +253,7 @@ def create_agent_tools(
         Tool(
             name="get_previous_analysis",
             func=get_previous_analysis,
-            description="Retrieve previous analysis results. Use when user references earlier analyses or asks for comparisons.",
+            description="Retrieve previous analysis results. Use when user references earlier analyses, asks follow-up questions like 'What about its performance?', 'What are the risks?', 'What did you say about X earlier?', or asks for comparisons. Can handle ambiguous references like 'it', 'that token' by inferring from conversation context.",
         ),
     ]
 

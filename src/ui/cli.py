@@ -38,6 +38,12 @@ Welcome! I'm your AI-powered cryptocurrency analyst. I can help you analyze toke
 - "Compare Bitcoin's sentiment to Ethereum"
 - "What was the RSI for Solana you mentioned earlier?"
 
+**Follow-up Questions (Context-Aware):**
+- "What about its performance last week?" (refers to previously discussed token)
+- "What are the risks?" (follow-up on earlier analysis)
+- "What did you say about Bitcoin's sentiment earlier?" (references past conversation)
+- "Compare this to the Ethereum analysis you did before" (compares multiple analyses)
+
 **Commands:**
 - Type your question naturally
 - Type 'exit' or 'quit' to end the session

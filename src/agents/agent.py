@@ -2,7 +2,7 @@
 
 from langchain.agents import create_agent
 from langchain_openai import ChatOpenAI
-from langchain_core.messages import HumanMessage
+from langchain_core.messages import HumanMessage, AIMessage
 
 from src.config.settings import Settings
 from src.repositories.coin_repository import CoinRepository
@@ -24,6 +24,7 @@ class CryptoAnalysisAgent:
         """
         self.settings = settings
         self.analysis_history: dict = {}
+        self.conversation_messages: list = []  # Store conversation history
 
         # Initialize dependencies
         self.coin_repository = CoinRepository(cache_ttl=settings.cache_ttl)
@@ -54,6 +55,7 @@ class CryptoAnalysisAgent:
     def chat(self, user_input: str) -> str:
         """
         Send a message to the agent and get a response.
+        Maintains conversation context across multiple turns.
 
         Args:
             user_input: User's message
@@ -62,22 +64,61 @@ class CryptoAnalysisAgent:
             Agent's response
         """
         try:
-            # Use the new agent API
-            result = self.agent.invoke({"messages": [HumanMessage(content=user_input)]})
+            # Add user message to conversation history
+            user_message = HumanMessage(content=user_input)
+            self.conversation_messages.append(user_message)
+
+            # Use the new agent API with full conversation history
+            result = self.agent.invoke({"messages": self.conversation_messages})
             
             # Extract the response from the result
+            response_text = ""
             if isinstance(result, dict):
                 messages = result.get("messages", [])
                 if messages:
-                    last_message = messages[-1]
-                    if hasattr(last_message, "content"):
-                        return str(last_message.content)
-                    return str(last_message)
-                return str(result)
-            return str(result)
+                    # The agent returns all messages including new ones
+                    # Find new messages that aren't in our history yet
+                    existing_count = len(self.conversation_messages)
+                    new_messages = messages[existing_count:] if len(messages) > existing_count else []
+                    
+                    # Find the last AI message (response)
+                    for msg in reversed(new_messages):
+                        if isinstance(msg, AIMessage) or (hasattr(msg, "content") and not isinstance(msg, HumanMessage)):
+                            if hasattr(msg, "content"):
+                                response_text = str(msg.content)
+                                break
+                    
+                    # If no new messages found, check the last message in the result
+                    if not response_text and messages:
+                        last_msg = messages[-1]
+                        if isinstance(last_msg, AIMessage) or (hasattr(last_msg, "content") and not isinstance(last_msg, HumanMessage)):
+                            if hasattr(last_msg, "content"):
+                                response_text = str(last_msg.content)
+                    
+                    # Update conversation history with new messages
+                    if new_messages:
+                        self.conversation_messages.extend(new_messages)
+                    elif not response_text and messages:
+                        # Fallback: add the last message if it's new
+                        last_msg = messages[-1]
+                        if len(self.conversation_messages) == 0 or self.conversation_messages[-1] != last_msg:
+                            self.conversation_messages.append(AIMessage(content=str(last_msg)))
+                            response_text = str(last_msg)
+                else:
+                    response_text = str(result)
+            else:
+                response_text = str(result)
+                # Add as AI message if we got a string response
+                if response_text:
+                    self.conversation_messages.append(AIMessage(content=response_text))
+
+            return response_text if response_text else "I apologize, but I couldn't generate a response. Please try rephrasing your question."
         except Exception as e:
-            return f"I encountered an error: {str(e)}\n\nPlease try rephrasing your question or ask something else."
+            error_msg = f"I encountered an error: {str(e)}\n\nPlease try rephrasing your question or ask something else."
+            # Don't store error messages in conversation history
+            return error_msg
 
     def reset_conversation(self) -> None:
         """Reset the conversation memory and analysis history."""
+        self.conversation_messages.clear()
         self.analysis_history.clear()
