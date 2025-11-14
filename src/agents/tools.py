@@ -17,6 +17,23 @@ progress = get_progress_logger()
 # Constants
 AMBIGUOUS_TERMS = ["it", "that", "this", "the token", "that token", "this token"]
 ANALYSIS_TYPES = ["fundamental", "price", "sentiment", "technical"]
+# General blockchain/crypto technology terms that should be searched directly
+GENERAL_CRYPTO_TERMS = [
+    "blockchain",
+    "cryptocurrency",
+    "crypto",
+    "defi",
+    "decentralized finance",
+    "nft",
+    "non-fungible token",
+    "web3",
+    "smart contract",
+    "dapp",
+    "decentralized application",
+    "crypto market",
+    "digital asset",
+    "cryptocurrency market",
+]
 
 
 def handle_tool_errors(func: Callable) -> Callable:
@@ -49,7 +66,9 @@ def handle_tool_errors(func: Callable) -> Callable:
         except APIError as e:
             # Handle API errors, especially rate limits
             if e.status_code == 429:
-                progress.warning("Rate limit exceeded. Please wait 1-2 minutes and try again.")
+                progress.warning(
+                    "Rate limit exceeded. Please wait 1-2 minutes and try again."
+                )
                 return (
                     "⚠️ Rate limit exceeded: The API is temporarily unavailable due to too many requests. "
                     "Please wait 1-2 minutes and try again. "
@@ -218,53 +237,95 @@ def create_agent_tools(
     @handle_tool_errors
     def get_coin_news(query: str, page_size: int = 10) -> str:
         """
-        Get latest news articles for a cryptocurrency.
+        Get latest news articles for a cryptocurrency or blockchain technology topic.
         Use this when the user asks about news, recent articles, media coverage, or what's happening with a cryptocurrency.
-        Examples: "What's the news about Bitcoin?", "Show me recent articles about Ethereum", "What's happening with Solana?"
+        Examples: "What's the news about Bitcoin?", "Show me recent articles about Ethereum",
+        "What's happening with Solana?", "Provide me some news about blockchain"
 
         Args:
-            query: The cryptocurrency name or symbol
+            query: The cryptocurrency name, symbol, or blockchain technology topic
             page_size: Number of articles to return (default: 10, max: 20)
 
         Returns:
             Formatted news articles string
         """
         progress.info(f"Fetching news articles for: {query}")
-        data = coin_service.get_coin_news(query, page_size=min(page_size, 20))
-        
-        coin_name = data.get("name", query)
-        news_articles = data.get("news_articles", [])
-        news_count = data.get("news_count", 0)
-        
+
+        # Check if NewsAPI is configured
+        if not coin_service.repository.newsapi_client.api_key:
+            progress.warning("NewsAPI key not configured - news features unavailable")
+            return (
+                f"**News for {query}:**\n\n"
+                "News features are not available because NewsAPI key is not configured. "
+                "Please set the NEWSAPI_KEY environment variable to enable news features."
+            )
+
+        query_lower = query.lower().strip()
+
+        # Check if query is about general blockchain/crypto technology
+        is_general_topic = any(term in query_lower for term in GENERAL_CRYPTO_TERMS)
+
+        news_articles = []
+        topic_name = query
+
+        if is_general_topic:
+            # For general blockchain/crypto topics, search directly using NewsAPI
+            progress.info(
+                f"Searching for general blockchain/crypto news about: {query}"
+            )
+            try:
+                news_articles = coin_service.repository.newsapi_client.search_news(
+                    query=query, page_size=min(page_size, 20), days_back=7
+                )
+                topic_name = query
+            except Exception as e:
+                progress.error(f"Error searching news: {str(e)}")
+                return f"Error fetching news about {query}: {str(e)}"
+        else:
+            # Try to get news for a specific cryptocurrency
+            try:
+                data = coin_service.get_coin_news(query, page_size=min(page_size, 20))
+                topic_name = data.get("name", query)
+                news_articles = data.get("news_articles", [])
+            except CoinNotFoundError:
+                # If not found as a coin, try searching as a general topic anyway
+                progress.info(
+                    f"'{query}' not found as cryptocurrency, searching as general topic"
+                )
+                try:
+                    news_articles = coin_service.repository.newsapi_client.search_news(
+                        query=query, page_size=min(page_size, 20), days_back=7
+                    )
+                    topic_name = query
+                except Exception as e:
+                    progress.error(f"Error searching news: {str(e)}")
+                    return (
+                        f"Could not find cryptocurrency '{query}' and encountered an error "
+                        f"searching for general news: {str(e)}. Please check the name or try a different query."
+                    )
+
+        news_count = len(news_articles)
+
         if news_count == 0:
-            # Check if NewsAPI is configured
-            if not coin_service.repository.newsapi_client.api_key:
-                progress.warning("NewsAPI key not configured - news features unavailable")
-                return (
-                    f"**News for {coin_name}:**\n\n"
-                    "News features are not available because NewsAPI key is not configured. "
-                    "Please set the NEWSAPI_KEY environment variable to enable news features."
-                )
-            else:
-                progress.info("No recent news articles found")
-                return (
-                    f"**News for {coin_name}:**\n\n"
-                    "No recent news articles found for this cryptocurrency in the past 7 days. "
-                    "This could indicate low media attention or a quiet period for the project."
-                )
-        
-        progress.success(f"Found {news_count} news articles for {coin_name}")
-        
+            progress.info("No recent news articles found")
+            return (
+                f"**News for {topic_name}:**\n\n"
+                "No recent news articles found in the past 7 days. "
+                "This could indicate low media attention or a quiet period for this topic."
+            )
+
+        progress.success(f"Found {news_count} news articles for {topic_name}")
+
         # Format news articles
-        parts = [f"**Latest News for {coin_name} ({news_count} articles found):**\n"]
-        
+        parts = [f"**Latest News for {topic_name} ({news_count} articles found):**\n"]
+
         for i, article in enumerate(news_articles, 1):
             title = article.get("title", "No title")
             description = article.get("description", "")
             source = article.get("source", {}).get("name", "Unknown source")
             published = article.get("publishedAt", "")
             url = article.get("url", "")
-            
+
             # Format date if available
             if published:
                 try:
@@ -274,16 +335,18 @@ def create_agent_tools(
                     date_str = published[:16] if len(published) >= 16 else published
             else:
                 date_str = "Unknown date"
-            
+
             parts.append(f"\n{i}. **{title}**")
             parts.append(f"   Source: {source} | Published: {date_str}")
             if description:
                 # Truncate long descriptions
-                desc = description[:200] + "..." if len(description) > 200 else description
+                desc = (
+                    description[:200] + "..." if len(description) > 200 else description
+                )
                 parts.append(f"   {desc}")
             if url:
                 parts.append(f"   Link: {url}")
-        
+
         return "\n".join(parts)
 
     @handle_tool_errors
@@ -406,9 +469,11 @@ def create_agent_tools(
             name="get_coin_news",
             func=get_coin_news,
             description=(
-                "Get latest news articles for a cryptocurrency. "
+                "Get latest news articles for a cryptocurrency or blockchain technology topic. "
                 "Use this when user asks about news, recent articles, media coverage, "
-                "'what's happening with X', 'show me news about X', or 'what are the latest developments'. "
+                "'what's happening with X', 'show me news about X', 'what are the latest developments', "
+                "or asks for news about blockchain technology, cryptocurrency, DeFi, NFTs, Web3, etc. "
+                "Works for both specific cryptocurrencies (e.g., Bitcoin, Ethereum) and general topics (e.g., blockchain, crypto, DeFi). "
                 "Returns recent news articles with titles, sources, dates, and links."
             ),
         ),

@@ -57,7 +57,7 @@ class APIError(CryptoAnalysisError):
             details["status_code"] = status_code
         if endpoint:
             details["endpoint"] = endpoint
-        
+
         # Add user-friendly message for rate limits
         if status_code == 429:
             message = (
@@ -65,7 +65,7 @@ class APIError(CryptoAnalysisError):
                 "Please wait a few minutes and try again. "
                 "Tip: The application uses caching to reduce API calls."
             )
-        
+
         super().__init__(message, details)
 
 

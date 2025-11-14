@@ -17,7 +17,13 @@ progress = get_progress_logger()
 class BaseAPIClient(ABC):
     """Base class for API clients with common request handling."""
 
-    def __init__(self, base_url: str, timeout: int = DEFAULT_TIMEOUT, max_retries: int = 2, service_name: Optional[str] = None):
+    def __init__(
+        self,
+        base_url: str,
+        timeout: int = DEFAULT_TIMEOUT,
+        max_retries: int = 2,
+        service_name: Optional[str] = None,
+    ):
         """
         Initialize API client.
 
@@ -32,14 +38,14 @@ class BaseAPIClient(ABC):
         self.max_retries = max_retries
         self.service_name = service_name or self._extract_service_name(base_url)
         self._last_endpoint = None
-    
+
     def _extract_service_name(self, url: str) -> str:
         """Extract service name from URL."""
         try:
             # Extract domain name and capitalize
-            domain = url.split('//')[-1].split('/')[0]
+            domain = url.split("//")[-1].split("/")[0]
             # Get the main domain (e.g., api.coingecko.com -> coingecko)
-            parts = domain.split('.')
+            parts = domain.split(".")
             if len(parts) >= 2:
                 return parts[-2].title()
             return parts[0].title()
@@ -63,21 +69,21 @@ class BaseAPIClient(ABC):
             APIError: If the request fails after all retries
         """
         url = f"{self.base_url}/{endpoint.lstrip('/')}"
-        
+
         # Show progress only on first attempt for this endpoint
         if self._last_endpoint is None or self._last_endpoint != endpoint:
             progress.api_call(self.service_name)
             self._last_endpoint = endpoint
-        
+
         for attempt in range(self.max_retries + 1):
             try:
                 response = requests.get(url, params=params, timeout=self.timeout)
-                
+
                 # Handle rate limiting (429) with retry
                 if response.status_code == 429:
                     if attempt < self.max_retries:
                         # Calculate backoff: exponential with cap (1s, 2s, 4s, max 10s)
-                        backoff_time = min(2 ** attempt, 10)
+                        backoff_time = min(2**attempt, 10)
                         retry_after = response.headers.get("Retry-After")
                         if retry_after:
                             try:
@@ -86,7 +92,7 @@ class BaseAPIClient(ABC):
                                 backoff_time = min(retry_after_seconds, 10)
                             except (ValueError, TypeError):
                                 pass
-                        
+
                         progress.warning(
                             f"Rate limit hit. Retrying in {backoff_time}s (attempt {attempt + 1}/{self.max_retries})..."
                         )
@@ -101,14 +107,16 @@ class BaseAPIClient(ABC):
                             status_code=429,
                             endpoint=endpoint,
                         )
-                
+
                 response.raise_for_status()
                 data = response.json()
                 # Show success only on first successful attempt
                 if attempt == 0:
-                    progress.success(f"Successfully received data from {self.service_name}")
+                    progress.success(
+                        f"Successfully received data from {self.service_name}"
+                    )
                 return data
-                
+
             except requests.exceptions.Timeout:
                 if attempt < self.max_retries:
                     # Short backoff for timeouts (1-2 seconds)
@@ -122,7 +130,9 @@ class BaseAPIClient(ABC):
                 )
             except requests.exceptions.HTTPError as e:
                 # Don't retry for non-429 errors
-                status_code = response.status_code if hasattr(response, 'status_code') else None
+                status_code = (
+                    response.status_code if hasattr(response, "status_code") else None
+                )
                 raise APIError(
                     f"HTTP error {status_code} from {url}: {str(e)}",
                     status_code=status_code,
@@ -137,6 +147,6 @@ class BaseAPIClient(ABC):
                     f"Request to {url} failed: {str(e)}",
                     endpoint=endpoint,
                 )
-        
+
         # Should never reach here, but just in case
         raise APIError(f"Request to {url} failed after {self.max_retries} retries")

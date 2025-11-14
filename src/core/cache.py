@@ -33,7 +33,7 @@ class Cache:
 
         value, timestamp = self._cache[key]
         age = time.time() - timestamp
-        
+
         if age >= self.default_ttl:
             if allow_stale:
                 # Return stale data if requested (e.g., during rate limits)
