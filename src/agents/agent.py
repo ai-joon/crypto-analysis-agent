@@ -36,7 +36,9 @@ class CryptoAnalysisAgent:
         logger.info("Initializing crypto analysis agent...")
 
         # Initialize dependencies
-        self.coin_repository = CoinRepository(cache_ttl=settings.cache_ttl)
+        self.coin_repository = CoinRepository(
+            cache_ttl=settings.cache_ttl, newsapi_key=settings.newsapi_key
+        )
         self.coin_service = CoinService(self.coin_repository)
         self.analysis_service = AnalysisService(self.coin_repository)
 

@@ -19,6 +19,7 @@ class Settings:
     cache_ttl: int = 300
     request_timeout: int = 10
     verbose: bool = True
+    newsapi_key: Optional[str] = None
 
     def __post_init__(self):
         """Validate settings after initialization."""
@@ -99,17 +100,25 @@ class Settings:
         verbose_str = os.getenv("VERBOSE", "true").lower()
         verbose = verbose_str in ("true", "1", "yes", "on")
 
+        newsapi_key = os.getenv("NEWSAPI_KEY", "").strip()
+        newsapi_key = newsapi_key if newsapi_key else None
+
         settings = cls(
             openai_api_key=openai_api_key.strip(),
             openai_model=os.getenv("OPENAI_MODEL", "gpt-4o-mini").strip(),
             cache_ttl=cache_ttl,
             request_timeout=request_timeout,
             verbose=verbose,
+            newsapi_key=newsapi_key,
         )
 
         logger.info(
             f"Settings loaded: model={settings.openai_model}, cache_ttl={settings.cache_ttl}s"
         )
+        if newsapi_key:
+            logger.info("NewsAPI key configured - news features enabled")
+        else:
+            logger.info("NewsAPI key not configured - news features disabled")
         return settings
 
 

@@ -3,6 +3,7 @@
 # API Configuration
 COINGECKO_BASE_URL = "https://api.coingecko.com/api/v3"
 FEAR_GREED_API_URL = "https://api.alternative.me/fng/"
+NEWSAPI_BASE_URL = "https://newsapi.org/v2"
 
 # Cache Configuration
 DEFAULT_CACHE_TTL = 300  # 5 minutes in seconds

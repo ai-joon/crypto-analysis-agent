@@ -1,5 +1,7 @@
 """Sentiment analysis module for cryptocurrency tokens."""
 
+from datetime import datetime
+
 from src.repositories.coin_repository import CoinRepository
 from src.core.interfaces import BaseAnalyzer
 
@@ -31,6 +33,10 @@ class SentimentAnalyzer(BaseAnalyzer):
             community_data = self.repository.get_community_data(coin_id)
             market_data = self.repository.get_market_data(coin_id)
             fng_data = self.repository.get_fear_greed_index()
+            
+            # Get coin symbol for news search
+            coin_data = self.repository.get_coin_data(coin_id)
+            coin_symbol = coin_data.get("symbol", "").upper()
 
             twitter_followers = community_data.get("twitter_followers", 0)
             reddit_subscribers = community_data.get("reddit_subscribers", 0)
@@ -39,6 +45,12 @@ class SentimentAnalyzer(BaseAnalyzer):
             telegram_users = community_data.get("telegram_channel_user_count", 0)
 
             price_change_7d = market_data.get("price_change_percentage_7d", 0)
+
+            # Fetch latest news articles
+            news_articles = self.repository.get_news_articles(
+                coin_name, coin_symbol, page_size=10
+            )
+            news_count = len(news_articles)
 
             # Calculate sentiment score based on available data
             sentiment_score = 50  # Neutral baseline
@@ -62,6 +74,16 @@ class SentimentAnalyzer(BaseAnalyzer):
                 sentiment_score += 5
             if reddit_comments and reddit_comments > 100:
                 sentiment_score += 5
+
+            # Adjust based on news coverage
+            if news_count > 0:
+                # More news articles can indicate higher interest/attention
+                if news_count >= 8:
+                    sentiment_score += 5
+                elif news_count >= 5:
+                    sentiment_score += 3
+                elif news_count >= 3:
+                    sentiment_score += 2
 
             # Cap sentiment score
             sentiment_score = max(0, min(100, sentiment_score))
@@ -112,9 +134,7 @@ class SentimentAnalyzer(BaseAnalyzer):
             else:
                 report += " - indicating neutral market sentiment"
 
-            report += f"""
-
-**Sentiment Analysis:**"""
+            report += "\n\n**Sentiment Analysis:**"
 
             if sentiment_score >= 70:
                 report += f"\n{coin_name} is experiencing very positive sentiment across multiple indicators. "
@@ -158,6 +178,54 @@ class SentimentAnalyzer(BaseAnalyzer):
                     report += ", suggesting moderate community engagement."
                 else:
                     report += ", showing relatively low discussion activity."
+
+            # News coverage section
+            if news_count > 0:
+                report += f"\n\n**Latest News Coverage ({news_count} articles found):**\n"
+                # Show top 5 most recent articles
+                for i, article in enumerate(news_articles[:5], 1):
+                    title = article.get("title", "No title")
+                    source = article.get("source", {}).get("name", "Unknown source")
+                    published = article.get("publishedAt", "")
+                    
+                    # Format date if available
+                    if published:
+                        try:
+                            pub_date = datetime.fromisoformat(
+                                published.replace("Z", "+00:00")
+                            )
+                            date_str = pub_date.strftime("%Y-%m-%d")
+                        except (ValueError, AttributeError):
+                            date_str = published[:10] if len(published) >= 10 else published
+                    else:
+                        date_str = "Unknown date"
+                    
+                    report += f"{i}. **{title}**\n"
+                    report += f"   Source: {source} | Date: {date_str}\n"
+                    
+                    # Add URL if available
+                    url = article.get("url")
+                    if url:
+                        report += f"   Link: {url}\n"
+                    report += "\n"
+                
+                if news_count > 5:
+                    report += f"*... and {news_count - 5} more articles*\n"
+                
+                report += "\n**News Impact:**\n"
+                if news_count >= 8:
+                    report += "High news coverage indicates significant market attention and potential volatility. "
+                    report += "Monitor news developments closely as they can drive price movements."
+                elif news_count >= 5:
+                    report += "Moderate news coverage suggests ongoing interest. "
+                    report += "Recent developments may influence market sentiment."
+                else:
+                    report += "Limited recent news coverage. "
+                    report += "The token may be in a consolidation phase or awaiting major developments."
+            elif news_count == 0 and self.repository.newsapi_client.api_key:
+                report += "\n\n**News Coverage:**\n"
+                report += "No recent news articles found for this cryptocurrency in the past 7 days. "
+                report += "This could indicate low media attention or a quiet period for the project."
 
             return report
 

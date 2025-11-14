@@ -1,10 +1,11 @@
 """Repository for cryptocurrency data access."""
 
-from typing import Dict, Any, List
+from typing import Dict, Any, List, Optional
 from datetime import datetime
 
 from src.api.coingecko_client import CoinGeckoClient
 from src.api.fear_greed_client import FearGreedClient
+from src.api.newsapi_client import NewsAPIClient
 from src.core.cache import Cache
 from src.config.constants import DEFAULT_CACHE_TTL
 
@@ -12,15 +13,17 @@ from src.config.constants import DEFAULT_CACHE_TTL
 class CoinRepository:
     """Repository for accessing cryptocurrency data with caching."""
 
-    def __init__(self, cache_ttl: int = DEFAULT_CACHE_TTL):
+    def __init__(self, cache_ttl: int = DEFAULT_CACHE_TTL, newsapi_key: Optional[str] = None):
         """
         Initialize coin repository.
 
         Args:
             cache_ttl: Cache time-to-live in seconds
+            newsapi_key: Optional NewsAPI key for news features
         """
         self.coingecko_client = CoinGeckoClient()
         self.fear_greed_client = FearGreedClient()
+        self.newsapi_client = NewsAPIClient(api_key=newsapi_key)
         self.cache = Cache(default_ttl=cache_ttl)
 
     def get_coin_id(self, query: str) -> str:
@@ -185,3 +188,28 @@ class CoinRepository:
         return self.cache.get_or_fetch(
             cache_key, self.fear_greed_client.get_fear_greed_index, ttl=3600
         )  # 1 hour cache for F&G index
+
+    def get_news_articles(
+        self, coin_name: str, coin_symbol: str = "", page_size: int = 10
+    ) -> List[Dict[str, Any]]:
+        """
+        Get latest news articles for a cryptocurrency.
+
+        Args:
+            coin_name: Full name of the cryptocurrency (e.g., "Bitcoin")
+            coin_symbol: Symbol of the cryptocurrency (e.g., "BTC")
+            page_size: Number of articles to return (default: 10)
+
+        Returns:
+            List of news articles with title, description, url, publishedAt, source
+        """
+        if not self.newsapi_client.api_key:
+            return []
+
+        cache_key = f"news_{coin_name.lower()}_{coin_symbol.lower()}"
+        # Cache news for 1 hour (news doesn't change that frequently)
+        return self.cache.get_or_fetch(
+            cache_key,
+            lambda: self.newsapi_client.get_crypto_news(coin_name, coin_symbol, page_size),
+            ttl=3600,
+        )
