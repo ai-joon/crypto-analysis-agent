@@ -10,7 +10,7 @@ class Settings:
     """Application settings."""
 
     openai_api_key: str
-    openai_model: str = "gpt-4"
+    openai_model: str = "gpt-4o-mini"
     cache_ttl: int = 300
     request_timeout: int = 10
     verbose: bool = True
@@ -32,7 +32,7 @@ class Settings:
 
         return cls(
             openai_api_key=openai_api_key,
-            openai_model=os.getenv("OPENAI_MODEL", "gpt-4"),
+            openai_model=os.getenv("OPENAI_MODEL", "gpt-4o-mini"),
             cache_ttl=int(os.getenv("CACHE_TTL", "300")),
             request_timeout=int(os.getenv("REQUEST_TIMEOUT", "10")),
             verbose=os.getenv("VERBOSE", "true").lower() == "true",
