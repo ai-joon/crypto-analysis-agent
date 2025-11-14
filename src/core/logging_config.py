@@ -2,7 +2,6 @@
 
 import logging
 import sys
-from typing import Optional
 
 
 def setup_logging(level: int = logging.INFO, verbose: bool = False) -> logging.Logger:
@@ -18,6 +17,10 @@ def setup_logging(level: int = logging.INFO, verbose: bool = False) -> logging.L
     """
     if verbose:
         level = logging.DEBUG
+    else:
+        # Suppress INFO and below for non-verbose mode
+        # Only show WARNING and ERROR
+        level = logging.WARNING
 
     # Create formatter
     formatter = logging.Formatter(
@@ -32,11 +35,23 @@ def setup_logging(level: int = logging.INFO, verbose: bool = False) -> logging.L
     # Remove existing handlers to avoid duplicates
     root_logger.handlers.clear()
 
-    # Console handler
+    # Console handler - only for warnings and errors
     console_handler = logging.StreamHandler(sys.stdout)
     console_handler.setLevel(level)
     console_handler.setFormatter(formatter)
     root_logger.addHandler(console_handler)
+
+    # Suppress LangChain verbose output
+    langchain_loggers = [
+        "langchain",
+        "langchain_core",
+        "langchain_openai",
+        "langsmith",
+    ]
+    for logger_name in langchain_loggers:
+        langchain_logger = logging.getLogger(logger_name)
+        langchain_logger.setLevel(logging.WARNING)
+        langchain_logger.propagate = False
 
     return root_logger
 

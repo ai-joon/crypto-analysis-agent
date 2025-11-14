@@ -7,15 +7,17 @@ from abc import ABC
 
 from src.core.exceptions import APIError
 from src.core.logging_config import get_logger
+from src.core.progress import get_progress_logger
 from src.config.constants import DEFAULT_TIMEOUT
 
 logger = get_logger(__name__)
+progress = get_progress_logger()
 
 
 class BaseAPIClient(ABC):
     """Base class for API clients with common request handling."""
 
-    def __init__(self, base_url: str, timeout: int = DEFAULT_TIMEOUT, max_retries: int = 2):
+    def __init__(self, base_url: str, timeout: int = DEFAULT_TIMEOUT, max_retries: int = 2, service_name: Optional[str] = None):
         """
         Initialize API client.
 
@@ -23,10 +25,26 @@ class BaseAPIClient(ABC):
             base_url: Base URL for the API
             timeout: Request timeout in seconds
             max_retries: Maximum number of retries for rate-limited requests (default: 2)
+            service_name: Optional service name for progress messages
         """
         self.base_url = base_url.rstrip("/")
         self.timeout = timeout
         self.max_retries = max_retries
+        self.service_name = service_name or self._extract_service_name(base_url)
+        self._last_endpoint = None
+    
+    def _extract_service_name(self, url: str) -> str:
+        """Extract service name from URL."""
+        try:
+            # Extract domain name and capitalize
+            domain = url.split('//')[-1].split('/')[0]
+            # Get the main domain (e.g., api.coingecko.com -> coingecko)
+            parts = domain.split('.')
+            if len(parts) >= 2:
+                return parts[-2].title()
+            return parts[0].title()
+        except Exception:
+            return "API"
 
     def get(
         self, endpoint: str, params: Optional[Dict[str, Any]] = None
@@ -46,6 +64,11 @@ class BaseAPIClient(ABC):
         """
         url = f"{self.base_url}/{endpoint.lstrip('/')}"
         
+        # Show progress only on first attempt for this endpoint
+        if self._last_endpoint is None or self._last_endpoint != endpoint:
+            progress.api_call(self.service_name)
+            self._last_endpoint = endpoint
+        
         for attempt in range(self.max_retries + 1):
             try:
                 response = requests.get(url, params=params, timeout=self.timeout)
@@ -64,9 +87,8 @@ class BaseAPIClient(ABC):
                             except (ValueError, TypeError):
                                 pass
                         
-                        logger.warning(
-                            f"Rate limit hit (429) for {url}. "
-                            f"Retrying in {backoff_time}s (attempt {attempt + 1}/{self.max_retries})"
+                        progress.warning(
+                            f"Rate limit hit. Retrying in {backoff_time}s (attempt {attempt + 1}/{self.max_retries})..."
                         )
                         time.sleep(backoff_time)
                         continue
@@ -81,15 +103,17 @@ class BaseAPIClient(ABC):
                         )
                 
                 response.raise_for_status()
-                return response.json()
+                data = response.json()
+                # Show success only on first successful attempt
+                if attempt == 0:
+                    progress.success(f"Successfully received data from {self.service_name}")
+                return data
                 
             except requests.exceptions.Timeout:
                 if attempt < self.max_retries:
                     # Short backoff for timeouts (1-2 seconds)
                     backoff = min(attempt + 1, 2)
-                    logger.warning(
-                        f"Request timeout for {url}. Retrying in {backoff}s..."
-                    )
+                    progress.warning(f"Request timeout. Retrying in {backoff}s...")
                     time.sleep(backoff)
                     continue
                 raise APIError(
@@ -106,7 +130,7 @@ class BaseAPIClient(ABC):
                 )
             except requests.exceptions.RequestException as e:
                 if attempt < self.max_retries:
-                    logger.warning(f"Request failed for {url}. Retrying...")
+                    progress.warning("Request failed. Retrying...")
                     time.sleep(1)
                     continue
                 raise APIError(

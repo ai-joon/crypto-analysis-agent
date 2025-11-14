@@ -11,7 +11,7 @@ class FearGreedClient(BaseAPIClient):
 
     def __init__(self):
         """Initialize Fear & Greed client."""
-        super().__init__(FEAR_GREED_API_URL)
+        super().__init__(FEAR_GREED_API_URL, service_name="Fear & Greed Index")
 
     def get_fear_greed_index(self) -> Dict[str, Any]:
         """

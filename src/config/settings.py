@@ -112,13 +112,7 @@ class Settings:
             newsapi_key=newsapi_key,
         )
 
-        logger.info(
-            f"Settings loaded: model={settings.openai_model}, cache_ttl={settings.cache_ttl}s"
-        )
-        if newsapi_key:
-            logger.info("NewsAPI key configured - news features enabled")
-        else:
-            logger.info("NewsAPI key not configured - news features disabled")
+        # Settings loaded silently - no need to log
         return settings
 
 

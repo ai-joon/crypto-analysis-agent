@@ -6,9 +6,11 @@ import requests
 
 from src.core.exceptions import APIError
 from src.core.logging_config import get_logger
+from src.core.progress import get_progress_logger
 from src.config.constants import DEFAULT_TIMEOUT, NEWSAPI_BASE_URL
 
 logger = get_logger(__name__)
+progress = get_progress_logger()
 
 
 class NewsAPIClient:
@@ -66,7 +68,6 @@ class NewsAPIClient:
             APIError: If the request fails or API key is missing
         """
         if not self.api_key:
-            logger.warning("NewsAPI key not configured, returning empty news list")
             return []
 
         # Calculate date range
@@ -83,6 +84,7 @@ class NewsAPIClient:
         }
 
         try:
+            progress.api_call("NewsAPI", "Fetching news from")
             url = f"{NEWSAPI_BASE_URL}/everything"
             response = requests.get(
                 url, params=params, headers=self._get_headers(), timeout=self.timeout
@@ -95,7 +97,7 @@ class NewsAPIClient:
                     endpoint="everything",
                 )
             elif response.status_code == 429:
-                logger.warning("NewsAPI rate limit exceeded")
+                progress.warning("NewsAPI rate limit exceeded")
                 return []
             elif response.status_code == 426:
                 raise APIError(
@@ -109,7 +111,7 @@ class NewsAPIClient:
 
             if data.get("status") != "ok":
                 error_message = data.get("message", "Unknown error from NewsAPI")
-                logger.error(f"NewsAPI error: {error_message}")
+                progress.error(f"NewsAPI error: {error_message}")
                 return []
 
             articles = data.get("articles", [])
@@ -120,26 +122,26 @@ class NewsAPIClient:
                 if article.get("title") and article.get("title") != "[Removed]"
             ]
 
-            logger.info(f"Found {len(filtered_articles)} news articles for '{query}'")
+            progress.success(f"Found {len(filtered_articles)} news articles")
             return filtered_articles[:page_size]
 
         except requests.exceptions.Timeout:
-            logger.warning("NewsAPI request timed out")
+            progress.warning("NewsAPI request timed out")
             return []
         except requests.exceptions.HTTPError as e:
-            logger.error(f"NewsAPI HTTP error: {str(e)}")
+            progress.error(f"NewsAPI HTTP error: {str(e)}")
             raise APIError(
                 f"HTTP error {response.status_code} from NewsAPI: {str(e)}",
                 status_code=response.status_code,
                 endpoint="everything",
             )
         except requests.exceptions.RequestException as e:
-            logger.error(f"NewsAPI request failed: {str(e)}")
+            progress.error(f"NewsAPI request failed: {str(e)}")
             raise APIError(
                 f"Request to NewsAPI failed: {str(e)}", endpoint="everything"
             )
         except Exception as e:
-            logger.error(f"Unexpected error in NewsAPI client: {str(e)}", exc_info=True)
+            progress.error(f"Unexpected error in NewsAPI: {str(e)}")
             return []
 
     def get_crypto_news(

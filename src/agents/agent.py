@@ -12,8 +12,10 @@ from src.services.analysis_service import AnalysisService
 from src.agents.tools import create_agent_tools
 from src.agents.prompts import get_system_prompt
 from src.core.logging_config import get_logger
+from src.core.progress import get_progress_logger
 
 logger = get_logger(__name__)
+progress = get_progress_logger()
 
 
 class CryptoAnalysisAgent:
@@ -33,7 +35,7 @@ class CryptoAnalysisAgent:
         self.analysis_history: Dict[str, Dict[str, Any]] = {}
         self.conversation_messages: List[BaseMessage] = []  # Store conversation history
 
-        logger.info("Initializing crypto analysis agent...")
+        progress.info("Initializing crypto analysis agent...")
 
         # Initialize dependencies
         self.coin_repository = CoinRepository(
@@ -57,15 +59,16 @@ class CryptoAnalysisAgent:
         # Create agent using new langchain 1.0.x API
         system_prompt = get_system_prompt()
         try:
+            # Disable debug mode to suppress verbose LangChain output
             self.agent = create_agent(
                 model=self.llm,
                 tools=self.tools,
                 system_prompt=system_prompt,
-                debug=self.settings.verbose,
+                debug=False,
             )
-            logger.info(f"Agent initialized successfully with {len(self.tools)} tools")
+            progress.success(f"Agent initialized with {len(self.tools)} tools")
         except Exception as e:
-            logger.error(f"Failed to initialize agent: {str(e)}", exc_info=True)
+            progress.error(f"Failed to initialize agent: {str(e)}")
             raise
 
     def chat(self, user_input: str) -> str:
@@ -84,8 +87,6 @@ class CryptoAnalysisAgent:
         """
         if not user_input or not user_input.strip():
             raise ValueError("User input cannot be empty")
-
-        logger.debug(f"Processing user input: {user_input[:50]}...")
 
         try:
             # Add user message to conversation history
@@ -167,6 +168,6 @@ class CryptoAnalysisAgent:
 
         Clears all stored messages and analysis results.
         """
-        logger.info("Resetting conversation history")
+        progress.info("Resetting conversation history")
         self.conversation_messages.clear()
         self.analysis_history.clear()

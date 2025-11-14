@@ -9,9 +9,11 @@ from src.api.newsapi_client import NewsAPIClient
 from src.core.cache import Cache
 from src.core.exceptions import APIError
 from src.core.logging_config import get_logger
+from src.core.progress import get_progress_logger
 from src.config.constants import DEFAULT_CACHE_TTL
 
 logger = get_logger(__name__)
+progress = get_progress_logger()
 
 
 class CoinRepository:
@@ -46,6 +48,9 @@ class CoinRepository:
             CoinNotFoundError: If coin cannot be found
         """
         cache_key = f"coin_id_{query.lower()}"
+        cached = self.cache.get(cache_key)
+        if cached:
+            return cached
         return self.cache.get_or_fetch(
             cache_key, lambda: self.coingecko_client.get_coin_id(query)
         )
@@ -68,7 +73,10 @@ class CoinRepository:
         # Check cache first (even if expired) to avoid unnecessary API calls
         cached = self.cache.get(cache_key, allow_stale=True)
         if cached:
+            progress.info("Using cached coin data")
             return cached
+        
+        progress.info(f"Fetching data for {coin_id}...")
         
         def fetch_with_error_handling():
             try:
@@ -78,7 +86,7 @@ class CoinRepository:
                 if e.status_code == 429:
                     cached = self.cache.get(cache_key, allow_stale=True)
                     if cached:
-                        logger.warning("Using cached data due to rate limit")
+                        progress.warning("Using cached data due to rate limit")
                         return cached
                 raise
         
@@ -142,6 +150,12 @@ class CoinRepository:
             List of price data points
         """
         cache_key = f"historical_{coin_id}_{days}"
+        
+        cached = self.cache.get(cache_key)
+        if cached:
+            return cached
+
+        progress.info(f"Fetching {days} days of historical price data...")
 
         def fetch():
             data = self.coingecko_client.get_market_chart(coin_id, days)
@@ -154,6 +168,7 @@ class CoinRepository:
                         "price": price,
                     }
                 )
+            progress.success(f"Retrieved {len(prices)} price data points")
             return prices
 
         return self.cache.get_or_fetch(cache_key, fetch)
@@ -232,6 +247,11 @@ class CoinRepository:
             return []
 
         cache_key = f"news_{coin_name.lower()}_{coin_symbol.lower()}"
+        cached = self.cache.get(cache_key)
+        if cached:
+            progress.info(f"Using cached news for {coin_name}")
+            return cached
+        
         # Cache news for 1 hour (news doesn't change that frequently)
         return self.cache.get_or_fetch(
             cache_key,

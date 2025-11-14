@@ -8,8 +8,10 @@ from src.services.coin_service import CoinService
 from src.services.analysis_service import AnalysisService
 from src.core.exceptions import CoinNotFoundError, AnalysisError, APIError
 from src.core.logging_config import get_logger
+from src.core.progress import get_progress_logger
 
 logger = get_logger(__name__)
+progress = get_progress_logger()
 
 # Constants
 AMBIGUOUS_TERMS = ["it", "that", "this", "the token", "that token", "this token"]
@@ -41,23 +43,21 @@ def handle_tool_errors(func: Callable) -> Callable:
                 )
             return f"Could not find cryptocurrency '{query}'. Please check the name or symbol and try again."
         except AnalysisError as e:
-            logger.error(f"Analysis error in {func.__name__}: {str(e)}")
+            progress.error(f"Analysis error in {e.analysis_type} analysis: {str(e)}")
             return f"Error in {e.analysis_type} analysis: {str(e)}"
         except APIError as e:
             # Handle API errors, especially rate limits
             if e.status_code == 429:
-                logger.warning(f"Rate limit error in {func.__name__}")
+                progress.warning("Rate limit exceeded. Please wait 1-2 minutes and try again.")
                 return (
                     "⚠️ Rate limit exceeded: The API is temporarily unavailable due to too many requests. "
                     "Please wait 1-2 minutes and try again. "
                     "The application uses caching to minimize API calls."
                 )
-            logger.error(f"API error in {func.__name__}: {str(e)}")
+            progress.error(f"API error: {str(e)}")
             return f"API error: {str(e)}"
         except Exception as e:
-            logger.error(
-                f"Unexpected error in {func.__name__}: {str(e)}", exc_info=True
-            )
+            progress.error(f"Unexpected error: {str(e)}")
             return f"An unexpected error occurred: {str(e)}. Please try again."
 
     return wrapper
@@ -120,7 +120,9 @@ def create_analysis_tool(
         coin_id = info["coin_id"]
         coin_name = info["name"]
 
+        progress.info(f"Performing {analysis_type} analysis for {coin_name}...")
         result = analysis_method(coin_query)
+        progress.success(f"Completed {analysis_type} analysis for {coin_name}")
 
         store_analysis_result(
             coin_id, coin_name, analysis_type, result, analysis_history
@@ -161,7 +163,9 @@ def create_agent_tools(
         Returns:
             Formatted coin information string
         """
+        progress.info(f"Getting coin information for: {query}")
         info = coin_service.get_coin_info(query)
+        progress.success(f"Found: {info['name']} ({info['symbol']})")
         return (
             f"Found: {info['name']} ({info['symbol']}). CoinGecko ID: {info['coin_id']}"
         )
@@ -179,7 +183,9 @@ def create_agent_tools(
         Returns:
             Formatted market data string
         """
+        progress.info(f"Getting price data for: {query}")
         data = coin_service.get_coin_price(query)
+        progress.success(f"Retrieved price data for {data.get('name', query)}")
         coin_name = data.get("name", query)
         symbol = data.get("symbol", "")
 
