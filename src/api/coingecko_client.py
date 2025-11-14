@@ -100,4 +100,3 @@ class CoinGeckoClient(BaseAPIClient):
                 "interval": "daily" if days > 1 else "hourly",
             },
         )
-

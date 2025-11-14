@@ -26,7 +26,9 @@ class BaseAPIClient(ABC):
     """Base class for API clients."""
 
     @abstractmethod
-    def get(self, endpoint: str, params: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+    def get(
+        self, endpoint: str, params: Optional[Dict[str, Any]] = None
+    ) -> Dict[str, Any]:
         """
         Make a GET request to the API.
 
@@ -41,4 +43,3 @@ class BaseAPIClient(ABC):
             APIError: If the request fails
         """
         raise NotImplementedError
-

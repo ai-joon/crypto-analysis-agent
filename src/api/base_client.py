@@ -52,4 +52,3 @@ class BaseAPIClient(ABC):
             )
         except requests.exceptions.RequestException as e:
             raise APIError(f"Request to {url} failed: {str(e)}")
-

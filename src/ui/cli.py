@@ -215,8 +215,9 @@ I remember our conversation context! You can ask:
                     break
 
             except Exception as e:
-                self.console.print(f"\n[bold red]Error:[/bold red] {str(e)}", style="red")
+                self.console.print(
+                    f"\n[bold red]Error:[/bold red] {str(e)}", style="red"
+                )
                 self.console.print(
                     "[yellow]Please try again with a different question.[/yellow]"
                 )
-

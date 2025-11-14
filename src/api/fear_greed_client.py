@@ -26,7 +26,9 @@ class FearGreedClient(BaseAPIClient):
                 fng_data = data["data"][0]
                 return {
                     "value": int(fng_data.get("value", 50)),
-                    "value_classification": fng_data.get("value_classification", "Neutral"),
+                    "value_classification": fng_data.get(
+                        "value_classification", "Neutral"
+                    ),
                     "timestamp": fng_data.get("timestamp"),
                 }
         except Exception:
@@ -38,4 +40,3 @@ class FearGreedClient(BaseAPIClient):
             "value_classification": "Neutral",
             "timestamp": None,
         }
-

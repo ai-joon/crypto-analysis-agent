@@ -31,4 +31,3 @@ COIN_SYMBOL_MAPPINGS = {
 
 # Analysis Types
 ANALYSIS_TYPES = ["fundamental", "price", "sentiment", "technical"]
-

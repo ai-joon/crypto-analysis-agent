@@ -84,4 +84,3 @@ class Cache:
         """
         if key in self._cache:
             del self._cache[key]
-

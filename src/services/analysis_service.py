@@ -134,4 +134,3 @@ class AnalysisService:
             raise
         except Exception as e:
             raise AnalysisError("technical", str(e))
-

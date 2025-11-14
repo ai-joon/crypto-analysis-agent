@@ -84,9 +84,13 @@ class CoinRepository:
             "high_24h": get_usd_value("high_24h"),
             "low_24h": get_usd_value("low_24h"),
             "price_change_24h": market_data.get("price_change_24h"),
-            "price_change_percentage_24h": market_data.get("price_change_percentage_24h"),
+            "price_change_percentage_24h": market_data.get(
+                "price_change_percentage_24h"
+            ),
             "price_change_percentage_7d": market_data.get("price_change_percentage_7d"),
-            "price_change_percentage_30d": market_data.get("price_change_percentage_30d"),
+            "price_change_percentage_30d": market_data.get(
+                "price_change_percentage_30d"
+            ),
             "circulating_supply": market_data.get("circulating_supply"),
             "total_supply": market_data.get("total_supply"),
             "max_supply": market_data.get("max_supply"),
@@ -96,7 +100,9 @@ class CoinRepository:
             "atl_date": get_usd_value("atl_date"),
         }
 
-    def get_historical_prices(self, coin_id: str, days: int = 30) -> List[Dict[str, Any]]:
+    def get_historical_prices(
+        self, coin_id: str, days: int = 30
+    ) -> List[Dict[str, Any]]:
         """
         Get historical price data.
 
@@ -141,8 +147,12 @@ class CoinRepository:
             "twitter_followers": community_data.get("twitter_followers"),
             "reddit_subscribers": community_data.get("reddit_subscribers"),
             "reddit_average_posts_48h": community_data.get("reddit_average_posts_48h"),
-            "reddit_average_comments_48h": community_data.get("reddit_average_comments_48h"),
-            "telegram_channel_user_count": community_data.get("telegram_channel_user_count"),
+            "reddit_average_comments_48h": community_data.get(
+                "reddit_average_comments_48h"
+            ),
+            "telegram_channel_user_count": community_data.get(
+                "telegram_channel_user_count"
+            ),
         }
 
     def get_coin_description(self, coin_id: str) -> str:
@@ -175,4 +185,3 @@ class CoinRepository:
         return self.cache.get_or_fetch(
             cache_key, self.fear_greed_client.get_fear_greed_index, ttl=3600
         )  # 1 hour cache for F&G index
-

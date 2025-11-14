@@ -60,4 +60,3 @@ class CoinService:
             **coin_info,
             **market_data,
         }
-
