@@ -373,6 +373,25 @@ Potential improvements and additional features:
 
 ### Running Tests
 
+#### Quick Test (No API calls)
+```bash
+# Test basic functionality and imports
+python test_quick.py
+```
+
+#### NewsAPI Integration Test
+```bash
+# Test NewsAPI integration (requires NEWSAPI_KEY in .env)
+python test_newsapi.py
+```
+
+#### Full Application Test
+```bash
+# Run the application and test interactively
+python main.py
+```
+
+#### Development Testing
 ```bash
 # Install development dependencies
 pip install pytest pytest-cov

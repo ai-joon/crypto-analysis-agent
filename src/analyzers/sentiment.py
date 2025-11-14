@@ -33,7 +33,7 @@ class SentimentAnalyzer(BaseAnalyzer):
             community_data = self.repository.get_community_data(coin_id)
             market_data = self.repository.get_market_data(coin_id)
             fng_data = self.repository.get_fear_greed_index()
-            
+
             # Get coin symbol for news search
             coin_data = self.repository.get_coin_data(coin_id)
             coin_symbol = coin_data.get("symbol", "").upper()
@@ -181,13 +181,15 @@ class SentimentAnalyzer(BaseAnalyzer):
 
             # News coverage section
             if news_count > 0:
-                report += f"\n\n**Latest News Coverage ({news_count} articles found):**\n"
+                report += (
+                    f"\n\n**Latest News Coverage ({news_count} articles found):**\n"
+                )
                 # Show top 5 most recent articles
                 for i, article in enumerate(news_articles[:5], 1):
                     title = article.get("title", "No title")
                     source = article.get("source", {}).get("name", "Unknown source")
                     published = article.get("publishedAt", "")
-                    
+
                     # Format date if available
                     if published:
                         try:
@@ -196,22 +198,24 @@ class SentimentAnalyzer(BaseAnalyzer):
                             )
                             date_str = pub_date.strftime("%Y-%m-%d")
                         except (ValueError, AttributeError):
-                            date_str = published[:10] if len(published) >= 10 else published
+                            date_str = (
+                                published[:10] if len(published) >= 10 else published
+                            )
                     else:
                         date_str = "Unknown date"
-                    
+
                     report += f"{i}. **{title}**\n"
                     report += f"   Source: {source} | Date: {date_str}\n"
-                    
+
                     # Add URL if available
                     url = article.get("url")
                     if url:
                         report += f"   Link: {url}\n"
                     report += "\n"
-                
+
                 if news_count > 5:
                     report += f"*... and {news_count - 5} more articles*\n"
-                
+
                 report += "\n**News Impact:**\n"
                 if news_count >= 8:
                     report += "High news coverage indicates significant market attention and potential volatility. "

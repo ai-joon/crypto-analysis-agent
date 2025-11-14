@@ -7,13 +7,19 @@ from src.api.coingecko_client import CoinGeckoClient
 from src.api.fear_greed_client import FearGreedClient
 from src.api.newsapi_client import NewsAPIClient
 from src.core.cache import Cache
+from src.core.exceptions import APIError
+from src.core.logging_config import get_logger
 from src.config.constants import DEFAULT_CACHE_TTL
+
+logger = get_logger(__name__)
 
 
 class CoinRepository:
     """Repository for accessing cryptocurrency data with caching."""
 
-    def __init__(self, cache_ttl: int = DEFAULT_CACHE_TTL, newsapi_key: Optional[str] = None):
+    def __init__(
+        self, cache_ttl: int = DEFAULT_CACHE_TTL, newsapi_key: Optional[str] = None
+    ):
         """
         Initialize coin repository.
 
@@ -53,11 +59,26 @@ class CoinRepository:
 
         Returns:
             Coin data dictionary
+
+        Raises:
+            APIError: If API request fails (including rate limits)
         """
         cache_key = f"coin_data_{coin_id}"
-        return self.cache.get_or_fetch(
-            cache_key, lambda: self.coingecko_client.get_coin_data(coin_id)
-        )
+        
+        def fetch_with_error_handling():
+            try:
+                return self.coingecko_client.get_coin_data(coin_id)
+            except APIError as e:
+                # If rate limited, try to return stale cache data
+                if e.status_code == 429:
+                    # Try to get from cache even if expired (stale data is better than error)
+                    cached = self.cache.get(cache_key, allow_stale=True)
+                    if cached:
+                        logger.warning("Using cached data due to rate limit")
+                        return cached
+                raise
+        
+        return self.cache.get_or_fetch(cache_key, fetch_with_error_handling)
 
     def get_market_data(self, coin_id: str) -> Dict[str, Any]:
         """
@@ -210,6 +231,8 @@ class CoinRepository:
         # Cache news for 1 hour (news doesn't change that frequently)
         return self.cache.get_or_fetch(
             cache_key,
-            lambda: self.newsapi_client.get_crypto_news(coin_name, coin_symbol, page_size),
+            lambda: self.newsapi_client.get_crypto_news(
+                coin_name, coin_symbol, page_size
+            ),
             ttl=3600,
         )

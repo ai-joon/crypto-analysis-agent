@@ -137,7 +137,9 @@ class NewsAPIClient:
             )
         except requests.exceptions.RequestException as e:
             logger.error(f"NewsAPI request failed: {str(e)}")
-            raise APIError(f"Request to NewsAPI failed: {str(e)}", endpoint="everything")
+            raise APIError(
+                f"Request to NewsAPI failed: {str(e)}", endpoint="everything"
+            )
         except Exception as e:
             logger.error(f"Unexpected error in NewsAPI client: {str(e)}", exc_info=True)
             return []
@@ -187,4 +189,3 @@ class NewsAPIClient:
                 continue
 
         return all_articles[:page_size]
-

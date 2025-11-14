@@ -17,12 +17,13 @@ class Cache:
         self._cache: Dict[str, Tuple[Any, float]] = {}
         self.default_ttl = default_ttl
 
-    def get(self, key: str) -> Optional[Any]:
+    def get(self, key: str, allow_stale: bool = False) -> Optional[Any]:
         """
         Get value from cache if not expired.
 
         Args:
             key: Cache key
+            allow_stale: If True, return cached value even if expired (useful during rate limits)
 
         Returns:
             Cached value or None if not found or expired
@@ -31,7 +32,12 @@ class Cache:
             return None
 
         value, timestamp = self._cache[key]
-        if time.time() - timestamp >= self.default_ttl:
+        age = time.time() - timestamp
+        
+        if age >= self.default_ttl:
+            if allow_stale:
+                # Return stale data if requested (e.g., during rate limits)
+                return value
             del self._cache[key]
             return None
 

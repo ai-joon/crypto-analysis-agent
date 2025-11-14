@@ -6,7 +6,7 @@ from langchain_core.tools import Tool
 
 from src.services.coin_service import CoinService
 from src.services.analysis_service import AnalysisService
-from src.core.exceptions import CoinNotFoundError, AnalysisError
+from src.core.exceptions import CoinNotFoundError, AnalysisError, APIError
 from src.core.logging_config import get_logger
 
 logger = get_logger(__name__)
@@ -43,6 +43,17 @@ def handle_tool_errors(func: Callable) -> Callable:
         except AnalysisError as e:
             logger.error(f"Analysis error in {func.__name__}: {str(e)}")
             return f"Error in {e.analysis_type} analysis: {str(e)}"
+        except APIError as e:
+            # Handle API errors, especially rate limits
+            if e.status_code == 429:
+                logger.warning(f"Rate limit error in {func.__name__}")
+                return (
+                    "⚠️ Rate limit exceeded: The API is temporarily unavailable due to too many requests. "
+                    "Please wait 1-2 minutes and try again. "
+                    "The application uses caching to minimize API calls."
+                )
+            logger.error(f"API error in {func.__name__}: {str(e)}")
+            return f"API error: {str(e)}"
         except Exception as e:
             logger.error(
                 f"Unexpected error in {func.__name__}: {str(e)}", exc_info=True
