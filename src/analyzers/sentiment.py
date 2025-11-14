@@ -103,9 +103,9 @@ class SentimentAnalyzer(BaseAnalyzer):
             # Build analysis report
             report = f"""**Sentiment Analysis for {coin_name}:**
 
-**Overall Sentiment Score: {sentiment_score}/100 - {sentiment_class}**
+                        **Overall Sentiment Score: {sentiment_score}/100 - {sentiment_class}**
 
-**Community Engagement:**"""
+                        **Community Engagement:**"""
 
             if twitter_followers:
                 report += f"\n- Twitter Followers: {twitter_followers:,}"
@@ -123,9 +123,9 @@ class SentimentAnalyzer(BaseAnalyzer):
 
             report += f"""
 
-**Market Sentiment Indicators:**
-- Crypto Fear & Greed Index: {fng_data['value']}/100 ({fng_data['value_classification']})
-- Recent Price Action: {price_change_7d:+.2f}% over 7 days"""
+                        **Market Sentiment Indicators:**
+                        - Crypto Fear & Greed Index: {fng_data['value']}/100 ({fng_data['value_classification']})
+                        - Recent Price Action: {price_change_7d:+.2f}% over 7 days"""
 
             if price_change_7d > 5:
                 report += " - indicating positive market sentiment"

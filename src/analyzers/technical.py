@@ -92,8 +92,8 @@ class TechnicalAnalyzer(BaseAnalyzer):
             # Build analysis report
             report = f"""**Technical Analysis for {coin_name}:**
 
-**Moving Averages:**
-- Current Price: ${current_price:,.2f}"""
+                        **Moving Averages:**
+                        - Current Price: ${current_price:,.2f}"""
 
             if sma_7:
                 report += f"\n- 7-Day SMA: ${sma_7:,.2f}"
@@ -130,8 +130,8 @@ class TechnicalAnalyzer(BaseAnalyzer):
             if rsi:
                 report += f"""
 
-**Momentum Indicators:**
-- RSI (14): {rsi:.1f}"""
+                            **Momentum Indicators:**
+                            - RSI (14): {rsi:.1f}"""
 
                 if rsi >= 70:
                     report += " - **Overbought**"
@@ -153,8 +153,8 @@ class TechnicalAnalyzer(BaseAnalyzer):
             if macd_line:
                 report += f"""
 
-**MACD Indicator:**
-- MACD Line: {macd_line:+.4f}"""
+                            **MACD Indicator:**
+                            - MACD Line: {macd_line:+.4f}"""
 
                 if macd_line > 0:
                     report += " - **Bullish** (above zero line)"
@@ -166,7 +166,7 @@ class TechnicalAnalyzer(BaseAnalyzer):
             # Overall Technical Summary
             report += f"""
 
-**Technical Summary:**"""
+                        **Technical Summary:**"""
 
             bullish_signals = 0
             bearish_signals = 0

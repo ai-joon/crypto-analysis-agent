@@ -68,24 +68,24 @@ class PriceAnalyzer(BaseAnalyzer):
             # Build analysis report
             report = f"""**Price Analysis for {coin_name}:**
 
-**Current Price Action:**
-- Current Price: ${current_price:,.2f}
-- 24h Change: {price_change_24h:+.2f}%
-- 7d Change: {price_change_7d:+.2f}%
-- 30d Change: {price_change_30d:+.2f}%
+                        **Current Price Action:**
+                        - Current Price: ${current_price:,.2f}
+                        - 24h Change: {price_change_24h:+.2f}%
+                        - 7d Change: {price_change_7d:+.2f}%
+                        - 30d Change: {price_change_30d:+.2f}%
 
-**24h Price Range:**
-- High: ${high_24h:,.2f}
-- Low: ${low_24h:,.2f}
-- Range: ${high_24h - low_24h:,.2f} ({(high_24h - low_24h) / low_24h * 100:.2f}%)
+                        **24h Price Range:**
+                        - High: ${high_24h:,.2f}
+                        - Low: ${low_24h:,.2f}
+                        - Range: ${high_24h - low_24h:,.2f} ({(high_24h - low_24h) / low_24h * 100:.2f}%)
 
-**Historical Context:**
-- All-Time High: ${ath:,.2f} ({(current_price - ath) / ath * 100:.2f}% from ATH)
-- All-Time Low: ${atl:,.2f} ({(current_price - atl) / atl * 100:.2f}% from ATL)
+                        **Historical Context:**
+                        - All-Time High: ${ath:,.2f} ({(current_price - ath) / ath * 100:.2f}% from ATH)
+                        - All-Time Low: ${atl:,.2f} ({(current_price - atl) / atl * 100:.2f}% from ATL)
 
-**Volatility Assessment:**
-- 7-Day Volatility: {volatility_7d:.2f}%
-- Classification: """
+                        **Volatility Assessment:**
+                        - 7-Day Volatility: {volatility_7d:.2f}%
+                        - Classification: """
 
             if volatility_7d < 5:
                 report += "Low volatility - relatively stable price movement"

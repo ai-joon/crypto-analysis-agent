@@ -53,16 +53,16 @@ class FundamentalAnalyzer(BaseAnalyzer):
             # Build analysis report
             report = f"""**Fundamental Analysis for {coin_name}:**
 
-**Market Metrics:**
-- Market Cap: ${market_cap:,.0f} (Rank #{market_cap_rank})
-- Current Price: ${current_price:,.2f}
-- 24h Trading Volume: ${total_volume:,.0f}
-- Volume/Market Cap Ratio: {volume_mcap_ratio:.2f}% {"(healthy liquidity)" if volume_mcap_ratio > 5 else "(low liquidity)"}
+                        **Market Metrics:**
+                        - Market Cap: ${market_cap:,.0f} (Rank #{market_cap_rank})
+                        - Current Price: ${current_price:,.2f}
+                        - 24h Trading Volume: ${total_volume:,.0f}
+                        - Volume/Market Cap Ratio: {volume_mcap_ratio:.2f}% {"(healthy liquidity)" if volume_mcap_ratio > 5 else "(low liquidity)"}
 
-**Supply Metrics:**
-- Circulating Supply: {circulating_supply:,.0f} {coin_name}
-- Total Supply: {total_supply:,.0f} {coin_name if total_supply else "N/A"}
-- Max Supply: {max_supply:,.0f} {coin_name if max_supply else "Unlimited (no max cap)"}"""
+                        **Supply Metrics:**
+                        - Circulating Supply: {circulating_supply:,.0f} {coin_name}
+                        - Total Supply: {total_supply:,.0f} {coin_name if total_supply else "N/A"}
+                        - Max Supply: {max_supply:,.0f} {coin_name if max_supply else "Unlimited (no max cap)"}"""
 
             if supply_inflation is not None and supply_inflation > 0:
                 report += f"\n- Supply Inflation: {supply_inflation:.2f}% (tokens yet to be released)"
