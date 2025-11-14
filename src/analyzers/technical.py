@@ -1,14 +1,21 @@
 """Technical analysis module for cryptocurrency tokens."""
 
 from typing import List
-from src.data_fetcher import CryptoDataFetcher
+from src.repositories.coin_repository import CoinRepository
+from src.core.interfaces import BaseAnalyzer
 
 
-class TechnicalAnalyzer:
+class TechnicalAnalyzer(BaseAnalyzer):
     """Performs technical analysis on cryptocurrency tokens."""
 
-    def __init__(self, data_fetcher: CryptoDataFetcher):
-        self.data_fetcher = data_fetcher
+    def __init__(self, repository: CoinRepository):
+        """
+        Initialize technical analyzer.
+
+        Args:
+            repository: Coin repository instance
+        """
+        self.repository = repository
 
     def calculate_sma(self, prices: List[float], period: int) -> float:
         """Calculate Simple Moving Average."""
@@ -56,9 +63,9 @@ class TechnicalAnalyzer:
             Formatted analysis report
         """
         try:
-            historical_30d = self.data_fetcher.get_historical_prices(coin_id, days=30)
-            historical_90d = self.data_fetcher.get_historical_prices(coin_id, days=90)
-            market_data = self.data_fetcher.get_market_data(coin_id)
+            historical_30d = self.repository.get_historical_prices(coin_id, days=30)
+            historical_90d = self.repository.get_historical_prices(coin_id, days=90)
+            market_data = self.repository.get_market_data(coin_id)
 
             if not historical_30d or not historical_90d:
                 return "Insufficient historical data for technical analysis."

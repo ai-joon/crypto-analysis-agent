@@ -1,13 +1,20 @@
 """Sentiment analysis module for cryptocurrency tokens."""
 
-from src.data_fetcher import CryptoDataFetcher
+from src.repositories.coin_repository import CoinRepository
+from src.core.interfaces import BaseAnalyzer
 
 
-class SentimentAnalyzer:
+class SentimentAnalyzer(BaseAnalyzer):
     """Performs sentiment analysis on cryptocurrency tokens."""
 
-    def __init__(self, data_fetcher: CryptoDataFetcher):
-        self.data_fetcher = data_fetcher
+    def __init__(self, repository: CoinRepository):
+        """
+        Initialize sentiment analyzer.
+
+        Args:
+            repository: Coin repository instance
+        """
+        self.repository = repository
 
     def analyze(self, coin_id: str, coin_name: str) -> str:
         """
@@ -21,9 +28,9 @@ class SentimentAnalyzer:
             Formatted analysis report
         """
         try:
-            community_data = self.data_fetcher.get_community_data(coin_id)
-            market_data = self.data_fetcher.get_market_data(coin_id)
-            fng_data = self.data_fetcher.get_fear_greed_index()
+            community_data = self.repository.get_community_data(coin_id)
+            market_data = self.repository.get_market_data(coin_id)
+            fng_data = self.repository.get_fear_greed_index()
 
             twitter_followers = community_data.get("twitter_followers", 0)
             reddit_subscribers = community_data.get("reddit_subscribers", 0)

@@ -1,14 +1,21 @@
 """Price analysis module for cryptocurrency tokens."""
 
 import statistics
-from src.data_fetcher import CryptoDataFetcher
+from src.repositories.coin_repository import CoinRepository
+from src.core.interfaces import BaseAnalyzer
 
 
-class PriceAnalyzer:
+class PriceAnalyzer(BaseAnalyzer):
     """Performs price and trend analysis on cryptocurrency tokens."""
 
-    def __init__(self, data_fetcher: CryptoDataFetcher):
-        self.data_fetcher = data_fetcher
+    def __init__(self, repository: CoinRepository):
+        """
+        Initialize price analyzer.
+
+        Args:
+            repository: Coin repository instance
+        """
+        self.repository = repository
 
     def analyze(self, coin_id: str, coin_name: str) -> str:
         """
@@ -22,9 +29,9 @@ class PriceAnalyzer:
             Formatted analysis report
         """
         try:
-            market_data = self.data_fetcher.get_market_data(coin_id)
-            historical_7d = self.data_fetcher.get_historical_prices(coin_id, days=7)
-            historical_30d = self.data_fetcher.get_historical_prices(coin_id, days=30)
+            market_data = self.repository.get_market_data(coin_id)
+            historical_7d = self.repository.get_historical_prices(coin_id, days=7)
+            historical_30d = self.repository.get_historical_prices(coin_id, days=30)
 
             current_price = market_data["current_price"]
             price_change_24h = market_data["price_change_percentage_24h"]

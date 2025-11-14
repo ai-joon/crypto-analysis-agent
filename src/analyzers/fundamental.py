@@ -1,13 +1,20 @@
 """Fundamental analysis module for cryptocurrency tokens."""
 
-from src.data_fetcher import CryptoDataFetcher
+from src.repositories.coin_repository import CoinRepository
+from src.core.interfaces import BaseAnalyzer
 
 
-class FundamentalAnalyzer:
+class FundamentalAnalyzer(BaseAnalyzer):
     """Performs fundamental analysis on cryptocurrency tokens."""
 
-    def __init__(self, data_fetcher: CryptoDataFetcher):
-        self.data_fetcher = data_fetcher
+    def __init__(self, repository: CoinRepository):
+        """
+        Initialize fundamental analyzer.
+
+        Args:
+            repository: Coin repository instance
+        """
+        self.repository = repository
 
     def analyze(self, coin_id: str, coin_name: str) -> str:
         """
@@ -21,8 +28,8 @@ class FundamentalAnalyzer:
             Formatted analysis report
         """
         try:
-            market_data = self.data_fetcher.get_market_data(coin_id)
-            description = self.data_fetcher.get_coin_description(coin_id)
+            market_data = self.repository.get_market_data(coin_id)
+            description = self.repository.get_coin_description(coin_id)
 
             # Calculate metrics
             current_price = market_data["current_price"]
