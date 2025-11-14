@@ -11,7 +11,7 @@ class FearGreedClient(BaseAPIClient):
 
     def __init__(self):
         """Initialize Fear & Greed client."""
-        super().__init__(FEAR_GREED_API_URL)
+        super().__init__(FEAR_GREED_API_URL, service_name="Fear & Greed Index")
 
     def get_fear_greed_index(self) -> Dict[str, Any]:
         """
@@ -26,7 +26,9 @@ class FearGreedClient(BaseAPIClient):
                 fng_data = data["data"][0]
                 return {
                     "value": int(fng_data.get("value", 50)),
-                    "value_classification": fng_data.get("value_classification", "Neutral"),
+                    "value_classification": fng_data.get(
+                        "value_classification", "Neutral"
+                    ),
                     "timestamp": fng_data.get("timestamp"),
                 }
         except Exception:
@@ -38,4 +40,3 @@ class FearGreedClient(BaseAPIClient):
             "value_classification": "Neutral",
             "timestamp": None,
         }
-

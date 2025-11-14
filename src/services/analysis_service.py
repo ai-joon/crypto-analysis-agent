@@ -7,7 +7,7 @@ from src.analyzers import (
     SentimentAnalyzer,
     TechnicalAnalyzer,
 )
-from src.core.exceptions import CoinNotFoundError, AnalysisError
+from src.core.exceptions import AnalysisError
 
 
 class AnalysisService:
@@ -57,12 +57,10 @@ class AnalysisService:
             CoinNotFoundError: If coin cannot be found
             AnalysisError: If analysis fails
         """
+        coin_id = self.repository.get_coin_id(query)
+        coin_name = self.get_coin_name(query)
         try:
-            coin_id = self.repository.get_coin_id(query)
-            coin_name = self.get_coin_name(query)
             return self.fundamental_analyzer.analyze(coin_id, coin_name)
-        except CoinNotFoundError:
-            raise
         except Exception as e:
             raise AnalysisError("fundamental", str(e))
 
@@ -80,12 +78,10 @@ class AnalysisService:
             CoinNotFoundError: If coin cannot be found
             AnalysisError: If analysis fails
         """
+        coin_id = self.repository.get_coin_id(query)
+        coin_name = self.get_coin_name(query)
         try:
-            coin_id = self.repository.get_coin_id(query)
-            coin_name = self.get_coin_name(query)
             return self.price_analyzer.analyze(coin_id, coin_name)
-        except CoinNotFoundError:
-            raise
         except Exception as e:
             raise AnalysisError("price", str(e))
 
@@ -103,12 +99,10 @@ class AnalysisService:
             CoinNotFoundError: If coin cannot be found
             AnalysisError: If analysis fails
         """
+        coin_id = self.repository.get_coin_id(query)
+        coin_name = self.get_coin_name(query)
         try:
-            coin_id = self.repository.get_coin_id(query)
-            coin_name = self.get_coin_name(query)
             return self.sentiment_analyzer.analyze(coin_id, coin_name)
-        except CoinNotFoundError:
-            raise
         except Exception as e:
             raise AnalysisError("sentiment", str(e))
 
@@ -126,12 +120,9 @@ class AnalysisService:
             CoinNotFoundError: If coin cannot be found
             AnalysisError: If analysis fails
         """
+        coin_id = self.repository.get_coin_id(query)
+        coin_name = self.get_coin_name(query)
         try:
-            coin_id = self.repository.get_coin_id(query)
-            coin_name = self.get_coin_name(query)
             return self.technical_analyzer.analyze(coin_id, coin_name)
-        except CoinNotFoundError:
-            raise
         except Exception as e:
             raise AnalysisError("technical", str(e))
-

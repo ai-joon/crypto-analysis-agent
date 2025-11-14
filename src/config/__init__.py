@@ -16,4 +16,3 @@ __all__ = [
     "COINGECKO_BASE_URL",
     "FEAR_GREED_API_URL",
 ]
-
