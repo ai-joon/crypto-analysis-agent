@@ -2,6 +2,7 @@
 
 from typing import List, Callable, Dict, Any
 from functools import wraps
+from datetime import datetime
 from langchain_core.tools import Tool
 
 from src.services.coin_service import CoinService
@@ -215,6 +216,77 @@ def create_agent_tools(
         return "\n".join(parts) if len(parts) > 1 else "No market data available."
 
     @handle_tool_errors
+    def get_coin_news(query: str, page_size: int = 10) -> str:
+        """
+        Get latest news articles for a cryptocurrency.
+        Use this when the user asks about news, recent articles, media coverage, or what's happening with a cryptocurrency.
+        Examples: "What's the news about Bitcoin?", "Show me recent articles about Ethereum", "What's happening with Solana?"
+
+        Args:
+            query: The cryptocurrency name or symbol
+            page_size: Number of articles to return (default: 10, max: 20)
+
+        Returns:
+            Formatted news articles string
+        """
+        progress.info(f"Fetching news articles for: {query}")
+        data = coin_service.get_coin_news(query, page_size=min(page_size, 20))
+        
+        coin_name = data.get("name", query)
+        news_articles = data.get("news_articles", [])
+        news_count = data.get("news_count", 0)
+        
+        if news_count == 0:
+            # Check if NewsAPI is configured
+            if not coin_service.repository.newsapi_client.api_key:
+                progress.warning("NewsAPI key not configured - news features unavailable")
+                return (
+                    f"**News for {coin_name}:**\n\n"
+                    "News features are not available because NewsAPI key is not configured. "
+                    "Please set the NEWSAPI_KEY environment variable to enable news features."
+                )
+            else:
+                progress.info("No recent news articles found")
+                return (
+                    f"**News for {coin_name}:**\n\n"
+                    "No recent news articles found for this cryptocurrency in the past 7 days. "
+                    "This could indicate low media attention or a quiet period for the project."
+                )
+        
+        progress.success(f"Found {news_count} news articles for {coin_name}")
+        
+        # Format news articles
+        parts = [f"**Latest News for {coin_name} ({news_count} articles found):**\n"]
+        
+        for i, article in enumerate(news_articles, 1):
+            title = article.get("title", "No title")
+            description = article.get("description", "")
+            source = article.get("source", {}).get("name", "Unknown source")
+            published = article.get("publishedAt", "")
+            url = article.get("url", "")
+            
+            # Format date if available
+            if published:
+                try:
+                    pub_date = datetime.fromisoformat(published.replace("Z", "+00:00"))
+                    date_str = pub_date.strftime("%Y-%m-%d %H:%M")
+                except (ValueError, AttributeError):
+                    date_str = published[:16] if len(published) >= 16 else published
+            else:
+                date_str = "Unknown date"
+            
+            parts.append(f"\n{i}. **{title}**")
+            parts.append(f"   Source: {source} | Published: {date_str}")
+            if description:
+                # Truncate long descriptions
+                desc = description[:200] + "..." if len(description) > 200 else description
+                parts.append(f"   {desc}")
+            if url:
+                parts.append(f"   Link: {url}")
+        
+        return "\n".join(parts)
+
+    @handle_tool_errors
     def get_previous_analysis(coin_query: str, analysis_type: str = "all") -> str:
         """
         Retrieve previous analysis results for a cryptocurrency.
@@ -328,6 +400,16 @@ def create_agent_tools(
                 "Get current price and basic market data (price, market cap, volume, 24h changes). "
                 "Use this when user asks about price, current value, 'how much is X worth', "
                 "market cap, or 24h price changes. This is a quick lookup tool for current market data."
+            ),
+        ),
+        Tool(
+            name="get_coin_news",
+            func=get_coin_news,
+            description=(
+                "Get latest news articles for a cryptocurrency. "
+                "Use this when user asks about news, recent articles, media coverage, "
+                "'what's happening with X', 'show me news about X', or 'what are the latest developments'. "
+                "Returns recent news articles with titles, sources, dates, and links."
             ),
         ),
         Tool(
