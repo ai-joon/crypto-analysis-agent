@@ -1,9 +1,8 @@
 """Main agent class for cryptocurrency analysis."""
 
-from langchain.agents import AgentExecutor, create_openai_functions_agent
+from langchain.agents import create_agent
 from langchain_openai import ChatOpenAI
-from langchain.memory import ConversationBufferMemory
-from langchain.prompts import ChatPromptTemplate, MessagesPlaceholder
+from langchain_core.messages import HumanMessage
 
 from src.config.settings import Settings
 from src.repositories.coin_repository import CoinRepository
@@ -43,47 +42,14 @@ class CryptoAnalysisAgent:
             self.coin_service, self.analysis_service, self.analysis_history
         )
 
-        # Initialize memory
-        self.memory = ConversationBufferMemory(
-            memory_key="chat_history", return_messages=True, output_key="output"
-        )
-
-        # Create agent executor
-        self.agent_executor = self._create_agent_executor()
-
-    def _create_agent_executor(self) -> AgentExecutor:
-        """
-        Create the agent executor.
-
-        Returns:
-            Configured AgentExecutor
-        """
+        # Create agent using new langchain 1.0.x API
         system_prompt = get_system_prompt()
-
-        prompt = ChatPromptTemplate.from_messages(
-            [
-                ("system", system_prompt),
-                MessagesPlaceholder(variable_name="chat_history"),
-                ("user", "{input}"),
-                MessagesPlaceholder(variable_name="agent_scratchpad"),
-            ]
-        )
-
-        agent = create_openai_functions_agent(
-            llm=self.llm, tools=self.tools, prompt=prompt
-        )
-
-        agent_executor = AgentExecutor(
-            agent=agent,
+        self.agent = create_agent(
+            model=self.llm,
             tools=self.tools,
-            memory=self.memory,
-            verbose=self.settings.verbose,
-            max_iterations=6,
-            return_intermediate_steps=False,
-            handle_parsing_errors=True,
+            system_prompt=system_prompt,
+            debug=self.settings.verbose,
         )
-
-        return agent_executor
 
     def chat(self, user_input: str) -> str:
         """
@@ -96,13 +62,22 @@ class CryptoAnalysisAgent:
             Agent's response
         """
         try:
-            response = self.agent_executor.invoke({"input": user_input})
-            return response["output"]
+            # Use the new agent API
+            result = self.agent.invoke({"messages": [HumanMessage(content=user_input)]})
+            
+            # Extract the response from the result
+            if isinstance(result, dict):
+                messages = result.get("messages", [])
+                if messages:
+                    last_message = messages[-1]
+                    if hasattr(last_message, "content"):
+                        return str(last_message.content)
+                    return str(last_message)
+                return str(result)
+            return str(result)
         except Exception as e:
             return f"I encountered an error: {str(e)}\n\nPlease try rephrasing your question or ask something else."
 
     def reset_conversation(self) -> None:
         """Reset the conversation memory and analysis history."""
-        self.memory.clear()
         self.analysis_history.clear()
-

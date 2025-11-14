@@ -1,7 +1,7 @@
 """Agent tools for cryptocurrency analysis."""
 
 from typing import List
-from langchain.tools import Tool
+from langchain_core.tools import Tool
 
 from src.services.coin_service import CoinService
 from src.services.analysis_service import AnalysisService
