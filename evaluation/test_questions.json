@@ -1,80 +1,263 @@
 {
   "common_questions": [
     {
-      "question": "What is the current price of Bitcoin?",
+      "id": "cq1",
+      "question": "Tell me about Bitcoin",
+      "category": "comprehensive_analysis",
+      "expected_behaviors": [
+        "Should perform comprehensive analysis",
+        "Should include fundamental, price, sentiment, and technical analysis",
+        "Should provide specific data points (price, market cap, etc.)"
+      ],
+      "evaluation_criteria": {
+        "completeness": "Should cover all analysis types",
+        "accuracy": "Data points should be accurate",
+        "substance": "Should be multi-paragraph with specific metrics"
+      }
+    },
+    {
+      "id": "cq2",
+      "question": "What's the current price of Ethereum?",
       "category": "price_query",
-      "expected_behavior": "price_focus",
-      "expected_output_contains": ["price", "bitcoin", "btc", "usd"]
+      "expected_behaviors": [
+        "Should use get_coin_price tool",
+        "Should return current price and market data",
+        "Should be quick response"
+      ],
+      "evaluation_criteria": {
+        "tool_selection": "Should use appropriate tool",
+        "accuracy": "Price should be current and accurate",
+        "relevance": "Should directly answer the question"
+      }
     },
     {
-      "question": "Tell me about Ethereum",
-      "category": "general_analysis",
-      "expected_behavior": "comprehensive_analysis_or_clarification",
-      "expected_output_contains": ["ethereum", "eth", "market", "analysis"]
-    },
-    {
-      "question": "What's the market cap of Solana?",
-      "category": "fundamental_query",
-      "expected_behavior": "fundamental_focus",
-      "expected_output_contains": ["market cap", "solana", "sol"]
-    },
-    {
-      "question": "Show me news about blockchain technology",
+      "id": "cq3",
+      "question": "Show me news about Solana",
       "category": "news_query",
-      "expected_behavior": "general_topic_news",
-      "expected_output_contains": ["news", "blockchain", "article"]
+      "expected_behaviors": [
+        "Should fetch news articles",
+        "Should return recent news with sources",
+        "Should format articles clearly"
+      ],
+      "evaluation_criteria": {
+        "tool_selection": "Should use get_coin_news",
+        "relevance": "News should be about Solana",
+        "formatting": "Should be well-formatted with sources"
+      }
     },
     {
-      "question": "What is the sentiment around Bitcoin?",
+      "id": "cq4",
+      "question": "What's the sentiment for Bitcoin?",
       "category": "sentiment_query",
-      "expected_behavior": "sentiment_focus",
-      "expected_output_contains": ["sentiment", "bitcoin", "fear", "greed"]
+      "expected_behaviors": [
+        "Should perform sentiment analysis",
+        "Should include sentiment score",
+        "Should include social metrics"
+      ],
+      "evaluation_criteria": {
+        "tool_selection": "Should use sentiment_analysis",
+        "completeness": "Should include score and metrics",
+        "accuracy": "Sentiment assessment should be reasonable"
+      }
     },
     {
+      "id": "cq5",
       "question": "Analyze the technical indicators for Ethereum",
       "category": "technical_query",
-      "expected_behavior": "technical_focus",
-      "expected_output_contains": ["technical", "ethereum", "rsi", "sma", "indicator"]
+      "expected_behaviors": [
+        "Should perform technical analysis",
+        "Should include RSI, SMA, MACD",
+        "Should provide technical insights"
+      ],
+      "evaluation_criteria": {
+        "tool_selection": "Should use technical_analysis",
+        "completeness": "Should include multiple indicators",
+        "insight": "Should provide meaningful interpretation"
+      }
+    },
+    {
+      "id": "cq6",
+      "question": "What's the market cap of Bitcoin?",
+      "category": "fundamental_query",
+      "expected_behaviors": [
+        "Should provide market cap information",
+        "Should include ranking",
+        "Should be accurate"
+      ],
+      "evaluation_criteria": {
+        "accuracy": "Market cap should be accurate",
+        "completeness": "Should include relevant context",
+        "relevance": "Should directly answer the question"
+      }
     }
   ],
   "edge_case_questions": [
     {
+      "id": "ec1",
       "question": "Tell me about ETH",
       "category": "ambiguity",
-      "expected_behavior": "clarification_or_comprehensive",
-      "expected_output_contains": ["ethereum", "eth", "clarification", "would you like"]
+      "expected_behaviors": [
+        "Should ask for clarification OR proceed with comprehensive analysis",
+        "If clarifying, should provide options",
+        "If proceeding, should recognize ETH as Ethereum"
+      ],
+      "evaluation_criteria": {
+        "ambiguity_handling": "Should handle ambiguity appropriately",
+        "clarity": "Response should be clear",
+        "correctness": "Should correctly identify ETH as Ethereum if proceeding"
+      }
     },
     {
+      "id": "ec2",
       "question": "What's happening?",
       "category": "vague_query",
-      "expected_behavior": "clarification",
-      "expected_output_contains": ["clarify", "what", "which", "please"]
+      "expected_behaviors": [
+        "Should ask for clarification",
+        "Should provide helpful options",
+        "Should not proceed with random analysis"
+      ],
+      "evaluation_criteria": {
+        "clarification": "Should ask what user wants to know",
+        "helpfulness": "Should provide useful options",
+        "not_random": "Should not guess or proceed randomly"
+      }
     },
     {
+      "id": "ec3",
       "question": "Tell me about InvalidCoinXYZ123",
-      "category": "error_handling",
-      "expected_behavior": "error_handling",
-      "expected_output_contains": ["not found", "suggest", "error", "could not find"]
+      "category": "invalid_coin",
+      "expected_behaviors": [
+        "Should handle error gracefully",
+        "Should suggest similar coins if available",
+        "Should provide helpful error message"
+      ],
+      "evaluation_criteria": {
+        "error_handling": "Should handle error gracefully",
+        "helpfulness": "Should provide suggestions or guidance",
+        "user_experience": "Should not crash or show technical errors"
+      }
     },
     {
-      "question": "What's the weather today?",
-      "category": "off_topic",
-      "expected_behavior": "redirect",
-      "expected_output_contains": ["cryptocurrency", "blockchain", "crypto"]
-    },
-    {
+      "id": "ec4",
       "question": "Compare Bitcoin and Ethereum",
       "category": "comparison",
-      "expected_behavior": "comparison",
-      "expected_output_contains": ["bitcoin", "ethereum", "compare", "comparison"]
+      "expected_behaviors": [
+        "Should analyze both coins",
+        "Should provide comparative insights",
+        "Should use previous analysis if available"
+      ],
+      "evaluation_criteria": {
+        "completeness": "Should cover both coins",
+        "comparison": "Should provide meaningful comparison",
+        "efficiency": "Should use cached analyses if available"
+      }
     },
     {
+      "id": "ec5",
       "question": "What about its price?",
-      "category": "context_dependent",
-      "expected_behavior": "context_reference",
-      "expected_output_contains": ["price"],
-      "requires_context": true,
-      "context_query": "Tell me about Bitcoin"
+      "category": "context_reference",
+      "context": {
+        "previous_query": "Tell me about Bitcoin",
+        "previous_response": "Comprehensive Bitcoin analysis..."
+      },
+      "expected_behaviors": [
+        "Should understand 'it' refers to Bitcoin",
+        "Should retrieve or perform price analysis",
+        "Should maintain context"
+      ],
+      "evaluation_criteria": {
+        "context_understanding": "Should correctly identify referent",
+        "relevance": "Should provide price information",
+        "memory": "Should use conversation history"
+      }
+    },
+    {
+      "id": "ec6",
+      "question": "What's the weather today?",
+      "category": "off_topic",
+      "expected_behaviors": [
+        "Should politely redirect",
+        "Should stay on cryptocurrency topics",
+        "Should not provide weather information"
+      ],
+      "evaluation_criteria": {
+        "guardrails": "Should not answer off-topic questions",
+        "politeness": "Should redirect politely",
+        "focus": "Should maintain domain focus"
+      }
+    },
+    {
+      "id": "ec7",
+      "question": "Provide me some news about blockchain",
+      "category": "general_topic",
+      "expected_behaviors": [
+        "Should handle general blockchain topic",
+        "Should fetch general blockchain news",
+        "Should not try to find 'blockchain' as a coin"
+      ],
+      "evaluation_criteria": {
+        "topic_handling": "Should recognize general topic",
+        "tool_selection": "Should use appropriate search",
+        "relevance": "News should be about blockchain technology"
+      }
+    },
+    {
+      "id": "ec8",
+      "question": "What did you say about Bitcoin's RSI earlier?",
+      "category": "memory_retrieval",
+      "context": {
+        "previous_query": "Tell me about Bitcoin",
+        "previous_response": "Technical analysis with RSI value..."
+      },
+      "expected_behaviors": [
+        "Should retrieve previous analysis",
+        "Should find RSI value from history",
+        "Should reference earlier conversation"
+      ],
+      "evaluation_criteria": {
+        "memory": "Should retrieve from analysis history",
+        "accuracy": "Should provide correct RSI value",
+        "context": "Should reference earlier conversation"
+      }
+    }
+  ],
+  "multi_turn_scenarios": [
+    {
+      "id": "mt1",
+      "scenario": "comprehensive_analysis_flow",
+      "turns": [
+        {
+          "turn": 1,
+          "question": "Tell me about Bitcoin",
+          "expected": "Comprehensive analysis"
+        },
+        {
+          "turn": 2,
+          "question": "What about its sentiment?",
+          "expected": "Sentiment analysis for Bitcoin"
+        },
+        {
+          "turn": 3,
+          "question": "Compare it to Ethereum",
+          "expected": "Comparison between Bitcoin and Ethereum"
+        }
+      ]
+    },
+    {
+      "id": "mt2",
+      "scenario": "clarification_flow",
+      "turns": [
+        {
+          "turn": 1,
+          "question": "Tell me about ETH",
+          "expected": "Clarification request OR comprehensive analysis"
+        },
+        {
+          "turn": 2,
+          "question": "Comprehensive analysis",
+          "expected": "Full analysis of Ethereum"
+        }
+      ]
     }
   ]
 }

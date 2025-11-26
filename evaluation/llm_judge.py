@@ -1,203 +1,180 @@
-"""LLM-as-a-Judge implementation for evaluating answer accuracy."""
+"""LLM-as-a-Judge evaluation system for assessing answer quality."""
 
 import json
-import os
-from typing import Dict, Any, Optional
+from typing import Dict, Any, List, Optional
 from openai import OpenAI
-from openai import APIError as OpenAIAPIError
+from dotenv import load_dotenv
+import os
 
-from evaluation.config import (
-    DEFAULT_JUDGE_MODEL,
-    JUDGE_TEMPERATURE,
-    SCORE_MIN,
-    SCORE_MAX,
-)
-
-
-class LLMJudgeError(Exception):
-    """Custom exception for LLM judge errors."""
+# Load environment variables
+load_dotenv()
 
 
 class LLMJudge:
-    """Uses an LLM to evaluate the accuracy of agent responses."""
+    """Uses an LLM to judge the quality and accuracy of agent responses."""
 
-    SYSTEM_PROMPT = (
-        "You are an expert evaluator assessing the accuracy and quality of "
-        "cryptocurrency analysis responses. Rate answers on a scale of 0-100 "
-        "based on accuracy, completeness, and relevance. Always respond with valid JSON."
-    )
-
-    EVALUATION_CRITERIA = """
-Evaluate the answer and provide a JSON response with:
-1. "score": A number from 0-100 representing overall quality
-2. "reasoning": Brief explanation of the score
-3. "accuracy": Assessment of factual accuracy (high/medium/low)
-4. "completeness": Assessment of how complete the answer is (high/medium/low)
-5. "relevance": Assessment of how relevant the answer is to the question (high/medium/low)
-
-Consider:
-- Are the facts correct?
-- Is the answer complete for the question asked?
-- Is the answer relevant and directly addresses the question?
-- Does it provide useful information?
-- Are there any errors or misleading information?
-
-Respond in JSON format only."""
-
-    def __init__(self, model: str = DEFAULT_JUDGE_MODEL):
-        """Initialize the LLM judge.
+    def __init__(self, api_key: Optional[str] = None, model: str = "gpt-4o-mini"):
+        """
+        Initialize the LLM judge.
 
         Args:
-            model: OpenAI model to use as judge
-
-        Raises:
-            LLMJudgeError: If API key is not found
+            api_key: OpenAI API key (defaults to OPENAI_API_KEY env var)
+            model: Model to use for judging (default: gpt-4o-mini)
         """
-        api_key = os.getenv("OPENAI_API_KEY")
-        if not api_key:
-            raise LLMJudgeError("OPENAI_API_KEY not found in environment variables")
+        self.api_key = api_key or os.getenv("OPENAI_API_KEY")
+        if not self.api_key:
+            raise ValueError("OpenAI API key is required for LLM judge")
 
-        self.client = OpenAI(api_key=api_key)
+        self.client = OpenAI(api_key=self.api_key)
         self.model = model
 
-    def evaluate_answer(
-        self, question: str, answer: str, context: Optional[Dict[str, Any]] = None
+    def evaluate_response(
+        self,
+        question: str,
+        response: str,
+        expected_behaviors: List[str],
+        evaluation_criteria: Dict[str, str],
+        context: Optional[str] = None,
     ) -> Dict[str, Any]:
-        """Evaluate the accuracy of an answer using LLM-as-a-Judge.
+        """
+        Evaluate an agent response using LLM-as-a-judge.
 
         Args:
-            question: The question that was asked
-            answer: The agent's answer
-            context: Optional context about expected behavior
+            question: The user's question
+            response: The agent's response
+            expected_behaviors: List of expected behaviors
+            evaluation_criteria: Dictionary of criteria to evaluate
+            context: Optional context about previous conversation
 
         Returns:
-            Dictionary with evaluation results including score and reasoning
-
-        Raises:
-            LLMJudgeError: If evaluation fails critically
+            Dictionary with evaluation scores and feedback
         """
-        if not question or not answer:
-            return self._create_error_result("Question and answer must be non-empty")
-
-        prompt = self._build_evaluation_prompt(question, answer, context)
-
-        try:
-            response = self._call_judge_api(prompt)
-            return self._parse_evaluation_response(response)
-        except (json.JSONDecodeError, KeyError, ValueError) as e:
-            return self._create_error_result(f"JSON parsing error: {str(e)}")
-        except OpenAIAPIError as e:
-            return self._create_error_result(f"OpenAI API error: {str(e)}")
-        except Exception as e:
-            return self._create_error_result(f"Unexpected error: {str(e)}")
-
-    def _call_judge_api(self, prompt: str) -> str:
-        """Call the OpenAI API for evaluation.
-
-        Args:
-            prompt: The evaluation prompt
-
-        Returns:
-            Response content from the API
-
-        Raises:
-            OpenAIAPIError: If API call fails
-        """
-        response = self.client.chat.completions.create(
-            model=self.model,
-            messages=[
-                {"role": "system", "content": self.SYSTEM_PROMPT},
-                {"role": "user", "content": prompt},
-            ],
-            temperature=JUDGE_TEMPERATURE,
-            response_format={"type": "json_object"},
+        # Build evaluation prompt
+        prompt = self._build_evaluation_prompt(
+            question, response, expected_behaviors, evaluation_criteria, context
         )
 
-        if not response.choices or not response.choices[0].message.content:
-            raise LLMJudgeError("Empty response from judge API")
+        try:
+            # Get judgment from LLM
+            judgment = self.client.chat.completions.create(
+                model=self.model,
+                messages=[
+                    {
+                        "role": "system",
+                        "content": "Evaluate cryptocurrency analysis responses objectively and thoroughly.",
+                    },
+                    {"role": "user", "content": prompt},
+                ],
+                temperature=0.3,  # Lower temperature for more consistent judgments
+                response_format={"type": "json_object"},
+            )
 
-        return response.choices[0].message.content
+            # Parse JSON response
+            result = json.loads(judgment.choices[0].message.content)
+            return result
 
-    def _parse_evaluation_response(self, content: str) -> Dict[str, Any]:
-        """Parse and validate the evaluation response.
-
-        Args:
-            content: JSON string from the API
-
-        Returns:
-            Parsed and validated evaluation result
-        """
-        result = json.loads(content)
-
-        score = self._validate_score(result.get("score", 0))
-
-        return {
-            "score": score,
-            "reasoning": result.get("reasoning", ""),
-            "accuracy": result.get("accuracy", ""),
-            "completeness": result.get("completeness", ""),
-            "relevance": result.get("relevance", ""),
-        }
-
-    def _validate_score(self, score: Any) -> float:
-        """Validate and clamp score to valid range.
-
-        Args:
-            score: Score value to validate
-
-        Returns:
-            Validated score between SCORE_MIN and SCORE_MAX
-        """
-        if not isinstance(score, (int, float)):
-            return float(SCORE_MIN)
-
-        return max(SCORE_MIN, min(SCORE_MAX, float(score)))
-
-    def _create_error_result(self, error_message: str) -> Dict[str, Any]:
-        """Create an error result dictionary.
-
-        Args:
-            error_message: Error message to include
-
-        Returns:
-            Error result dictionary
-        """
-        return {
-            "score": SCORE_MIN,
-            "reasoning": error_message,
-            "accuracy": "error",
-            "completeness": "error",
-            "relevance": "error",
-        }
+        except Exception as e:
+            return {
+                "error": str(e),
+                "overall_score": 0.0,
+                "scores": {},
+                "feedback": f"Error during evaluation: {str(e)}",
+            }
 
     def _build_evaluation_prompt(
-        self, question: str, answer: str, context: Optional[Dict[str, Any]] = None
+        self,
+        question: str,
+        response: str,
+        expected_behaviors: List[str],
+        evaluation_criteria: Dict[str, str],
+        context: Optional[str] = None,
     ) -> str:
-        """Build the evaluation prompt for the LLM judge.
+        """Build the evaluation prompt for the judge LLM."""
 
-        Args:
-            question: The question that was asked
-            answer: The agent's answer
-            context: Optional context about expected behavior
+        criteria_list = "\n".join(
+            [
+                f"- {criterion}: {description}"
+                for criterion, description in evaluation_criteria.items()
+            ]
+        )
 
-        Returns:
-            Complete evaluation prompt
-        """
-        prompt = f"""Evaluate the following answer for accuracy, completeness, and relevance.
+        behaviors_list = "\n".join([f"- {behavior}" for behavior in expected_behaviors])
 
-Question: {question}
-
-Answer:
-{answer}
-"""
-
+        context_section = ""
         if context:
-            if context.get("expected_behavior"):
-                prompt += f"\nExpected Behavior: {context['expected_behavior']}\n"
-            if context.get("expected_output_contains"):
-                expected_items = ", ".join(context["expected_output_contains"])
-                prompt += f"\nExpected to contain: {expected_items}\n"
+            context_section = f"\n\n**Context:**\n{context}\n"
 
-        prompt += self.EVALUATION_CRITERIA
+        prompt = f"""Evaluate this cryptocurrency analysis response.
+
+**Question:** {question}
+{context_section}
+**Response:** {response}
+
+**Expected Behaviors:**
+{behaviors_list}
+
+**Evaluation Criteria:**
+{criteria_list}
+
+**Scoring (0.0-1.0):**
+- 0.0-0.3: Poor
+- 0.4-0.6: Fair
+- 0.7-0.8: Good
+- 0.9-1.0: Excellent
+
+Return JSON:
+{{
+    "overall_score": <float>,
+    "scores": {{"<criterion>": <float>, ...}},
+    "feedback": "<explanation>",
+    "strengths": ["<strength>", ...],
+    "weaknesses": ["<weakness>", ...],
+    "accuracy_assessment": "<assessment>",
+    "relevance_assessment": "<assessment>"
+}}"""
 
         return prompt
+
+    def evaluate_batch(self, evaluations: List[Dict[str, Any]]) -> Dict[str, Any]:
+        """
+        Evaluate multiple question-response pairs in batch.
+
+        Args:
+            evaluations: List of dicts with 'question', 'response', 'expected_behaviors',
+                         'evaluation_criteria', and optional 'context'
+
+        Returns:
+            Dictionary with batch evaluation results
+        """
+        results = []
+
+        for i, eval_data in enumerate(evaluations, 1):
+            print(f"  Evaluating response {i}/{len(evaluations)}...")
+
+            result = self.evaluate_response(
+                question=eval_data["question"],
+                response=eval_data["response"],
+                expected_behaviors=eval_data["expected_behaviors"],
+                evaluation_criteria=eval_data["evaluation_criteria"],
+                context=eval_data.get("context"),
+            )
+
+            result["question_id"] = eval_data.get("id", f"q{i}")
+            result["question"] = eval_data["question"]
+            results.append(result)
+
+        # Calculate aggregate metrics
+        overall_scores = [
+            r.get("overall_score", 0.0) for r in results if "error" not in r
+        ]
+
+        return {
+            "total_evaluations": len(evaluations),
+            "successful_evaluations": len(overall_scores),
+            "average_score": (
+                sum(overall_scores) / len(overall_scores) if overall_scores else 0.0
+            ),
+            "min_score": min(overall_scores) if overall_scores else 0.0,
+            "max_score": max(overall_scores) if overall_scores else 0.0,
+            "individual_results": results,
+        }
