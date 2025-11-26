@@ -24,11 +24,11 @@ from evaluation.evaluate_agent import AgentEvaluator
 
 def main():
     """Run evaluation."""
-    print("="*60)
+    print("=" * 60)
     print("CRYPTO ANALYSIS AGENT - EVALUATION")
-    print("="*60)
+    print("=" * 60)
     print()
-    
+
     try:
         evaluator = AgentEvaluator()
         evaluator.run_full_evaluation()
@@ -39,10 +39,10 @@ def main():
     except Exception as e:
         print(f"\n\nEvaluation failed: {e}")
         import traceback
+
         traceback.print_exc()
         return 1
 
 
 if __name__ == "__main__":
     sys.exit(main())
-

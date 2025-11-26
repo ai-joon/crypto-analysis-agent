@@ -1,0 +1,81 @@
+{
+  "common_questions": [
+    {
+      "question": "What is the current price of Bitcoin?",
+      "category": "price_query",
+      "expected_behavior": "price_focus",
+      "expected_output_contains": ["price", "bitcoin", "btc", "usd"]
+    },
+    {
+      "question": "Tell me about Ethereum",
+      "category": "general_analysis",
+      "expected_behavior": "comprehensive_analysis_or_clarification",
+      "expected_output_contains": ["ethereum", "eth", "market", "analysis"]
+    },
+    {
+      "question": "What's the market cap of Solana?",
+      "category": "fundamental_query",
+      "expected_behavior": "fundamental_focus",
+      "expected_output_contains": ["market cap", "solana", "sol"]
+    },
+    {
+      "question": "Show me news about blockchain technology",
+      "category": "news_query",
+      "expected_behavior": "general_topic_news",
+      "expected_output_contains": ["news", "blockchain", "article"]
+    },
+    {
+      "question": "What is the sentiment around Bitcoin?",
+      "category": "sentiment_query",
+      "expected_behavior": "sentiment_focus",
+      "expected_output_contains": ["sentiment", "bitcoin", "fear", "greed"]
+    },
+    {
+      "question": "Analyze the technical indicators for Ethereum",
+      "category": "technical_query",
+      "expected_behavior": "technical_focus",
+      "expected_output_contains": ["technical", "ethereum", "rsi", "sma", "indicator"]
+    }
+  ],
+  "edge_case_questions": [
+    {
+      "question": "Tell me about ETH",
+      "category": "ambiguity",
+      "expected_behavior": "clarification_or_comprehensive",
+      "expected_output_contains": ["ethereum", "eth", "clarification", "would you like"]
+    },
+    {
+      "question": "What's happening?",
+      "category": "vague_query",
+      "expected_behavior": "clarification",
+      "expected_output_contains": ["clarify", "what", "which", "please"]
+    },
+    {
+      "question": "Tell me about InvalidCoinXYZ123",
+      "category": "error_handling",
+      "expected_behavior": "error_handling",
+      "expected_output_contains": ["not found", "suggest", "error", "could not find"]
+    },
+    {
+      "question": "What's the weather today?",
+      "category": "off_topic",
+      "expected_behavior": "redirect",
+      "expected_output_contains": ["cryptocurrency", "blockchain", "crypto"]
+    },
+    {
+      "question": "Compare Bitcoin and Ethereum",
+      "category": "comparison",
+      "expected_behavior": "comparison",
+      "expected_output_contains": ["bitcoin", "ethereum", "compare", "comparison"]
+    },
+    {
+      "question": "What about its price?",
+      "category": "context_dependent",
+      "expected_behavior": "context_reference",
+      "expected_output_contains": ["price"],
+      "requires_context": true,
+      "context_query": "Tell me about Bitcoin"
+    }
+  ]
+}
+

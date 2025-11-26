@@ -17,7 +17,7 @@ from src.analyzers.technical_analyzer import TechnicalAnalyzer
 def mock_coin_repository():
     """Create a mock coin repository with sample data."""
     repo = Mock(spec=CoinRepository)
-    
+
     # Mock market data
     repo.get_market_data.return_value = {
         "current_price": 50000.0,
@@ -35,19 +35,19 @@ def mock_coin_repository():
         "ath": 69000.0,
         "atl": 0.01,
     }
-    
+
     # Mock historical prices
     repo.get_historical_prices.return_value = [
         {"price": 48000.0 + i * 100} for i in range(30)
     ]
-    
+
     # Mock coin data
     repo.get_coin_data.return_value = {
         "name": "Bitcoin",
         "symbol": "btc",
-        "description": {"en": "Bitcoin is a decentralized digital currency."}
+        "description": {"en": "Bitcoin is a decentralized digital currency."},
     }
-    
+
     # Mock community data
     repo.get_community_data.return_value = {
         "twitter_followers": 5000000,
@@ -56,13 +56,13 @@ def mock_coin_repository():
         "reddit_average_comments_48h": 500,
         "telegram_channel_user_count": 1000000,
     }
-    
+
     # Mock fear & greed index
     repo.get_fear_greed_index.return_value = {
         "value": 65,
-        "value_classification": "Greed"
+        "value_classification": "Greed",
     }
-    
+
     # Mock news articles
     repo.get_news_articles.return_value = [
         {
@@ -70,13 +70,13 @@ def mock_coin_repository():
             "description": "Bitcoin price surges...",
             "source": {"name": "CryptoNews"},
             "publishedAt": "2024-01-15T10:00:00Z",
-            "url": "https://example.com/news1"
+            "url": "https://example.com/news1",
         }
     ]
-    
+
     # Mock coin ID resolution
     repo.get_coin_id.return_value = "bitcoin"
-    
+
     return repo
 
 
@@ -132,4 +132,3 @@ def sample_coin_id():
 def sample_coin_name():
     """Sample coin name for testing."""
     return "Bitcoin"
-
