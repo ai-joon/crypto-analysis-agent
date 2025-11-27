@@ -5,14 +5,12 @@ import os
 from typing import Optional
 
 
-# ANSI color codes
 class Colors:
     """ANSI color codes for terminal output."""
 
     RESET = "\033[0m"
     BOLD = "\033[1m"
 
-    # Text colors
     BLACK = "\033[30m"
     RED = "\033[31m"
     GREEN = "\033[32m"
@@ -22,7 +20,6 @@ class Colors:
     CYAN = "\033[36m"
     WHITE = "\033[37m"
 
-    # Bright colors
     BRIGHT_BLACK = "\033[90m"
     BRIGHT_RED = "\033[91m"
     BRIGHT_GREEN = "\033[92m"
@@ -35,16 +32,12 @@ class Colors:
 
 def _supports_color() -> bool:
     """Check if the terminal supports color output."""
-    # Check if we're in a terminal
     if not hasattr(sys.stdout, "isatty") or not sys.stdout.isatty():
         return False
 
-    # Check for Windows
     if os.name == "nt":
-        # Windows 10+ supports ANSI colors
         return os.getenv("TERM") != "dumb" or os.getenv("ANSICON") is not None
 
-    # Unix-like systems
     return True
 
 
@@ -63,7 +56,7 @@ class ProgressLogger:
         self.use_colors = use_colors if use_colors is not None else _supports_color()
 
     def _print(
-        self, message: str, prefix: str = "→", color: Optional[str] = None
+        self, message: str, prefix: str = "", color: Optional[str] = None
     ) -> None:
         """
         Print a progress message with optional color.
@@ -99,7 +92,7 @@ class ProgressLogger:
             service: Name of the API service (e.g., "CoinGecko", "NewsAPI")
             action: Action being performed (default: "calling")
         """
-        self._print(f"{action} {service} API...", prefix="→", color=Colors.BRIGHT_CYAN)
+        self._print(f"{action} {service} API...", prefix="", color=Colors.BRIGHT_CYAN)
 
     def success(self, message: str) -> None:
         """
@@ -108,7 +101,7 @@ class ProgressLogger:
         Args:
             message: Success message
         """
-        self._print(f"✓ {message}", prefix="", color=Colors.BRIGHT_GREEN)
+        self._print(message, prefix="", color=Colors.BRIGHT_GREEN)
 
     def info(self, message: str) -> None:
         """
@@ -117,7 +110,7 @@ class ProgressLogger:
         Args:
             message: Info message
         """
-        self._print(message, prefix="→", color=Colors.BRIGHT_BLUE)
+        self._print(message, prefix="", color=Colors.BRIGHT_BLUE)
 
     def warning(self, message: str) -> None:
         """
@@ -126,7 +119,7 @@ class ProgressLogger:
         Args:
             message: Warning message
         """
-        self._print(f"⚠ {message}", prefix="", color=Colors.BRIGHT_YELLOW)
+        self._print(message, prefix="", color=Colors.BRIGHT_YELLOW)
 
     def error(self, message: str) -> None:
         """
@@ -135,7 +128,16 @@ class ProgressLogger:
         Args:
             message: Error message
         """
-        self._print(f"✗ {message}", prefix="", color=Colors.BRIGHT_RED)
+        self._print(message, prefix="", color=Colors.BRIGHT_RED)
+
+    def cache(self, message: str) -> None:
+        """
+        Log a cache-related message in red.
+
+        Args:
+            message: Cache message
+        """
+        self._print(message, prefix="", color=Colors.BRIGHT_RED)
 
 
 # Global progress logger instance

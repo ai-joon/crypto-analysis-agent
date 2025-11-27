@@ -36,7 +36,6 @@ class Cache:
 
         if age >= self.default_ttl:
             if allow_stale:
-                # Return stale data if requested (e.g., during rate limits)
                 return value
             del self._cache[key]
             return None

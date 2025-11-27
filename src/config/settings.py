@@ -20,6 +20,11 @@ class Settings:
     request_timeout: int = 10
     verbose: bool = True
     newsapi_key: Optional[str] = None
+    semantic_cache_enabled: bool = True
+    semantic_cache_threshold: float = 0.85
+    semantic_cache_size: int = 1000
+    semantic_cache_ttl: int = 3600
+    semantic_cache_file: Optional[str] = None
 
     def __post_init__(self):
         """Validate settings after initialization."""
@@ -103,6 +108,30 @@ class Settings:
         newsapi_key = os.getenv("NEWSAPI_KEY", "").strip()
         newsapi_key = newsapi_key if newsapi_key else None
 
+        semantic_cache_enabled = os.getenv(
+            "SEMANTIC_CACHE_ENABLED", "true"
+        ).lower() in ("true", "1", "yes")
+
+        try:
+            semantic_cache_threshold = float(
+                os.getenv("SEMANTIC_CACHE_THRESHOLD", "0.85")
+            )
+        except ValueError:
+            semantic_cache_threshold = 0.85
+
+        try:
+            semantic_cache_size = int(os.getenv("SEMANTIC_CACHE_SIZE", "1000"))
+        except ValueError:
+            semantic_cache_size = 1000
+
+        try:
+            semantic_cache_ttl = int(os.getenv("SEMANTIC_CACHE_TTL", "3600"))
+        except ValueError:
+            semantic_cache_ttl = 3600
+
+        semantic_cache_file = os.getenv("SEMANTIC_CACHE_FILE", "").strip()
+        semantic_cache_file = semantic_cache_file if semantic_cache_file else None
+
         settings = cls(
             openai_api_key=openai_api_key.strip(),
             openai_model=os.getenv("OPENAI_MODEL", "gpt-4o-mini").strip(),
@@ -110,6 +139,11 @@ class Settings:
             request_timeout=request_timeout,
             verbose=verbose,
             newsapi_key=newsapi_key,
+            semantic_cache_enabled=semantic_cache_enabled,
+            semantic_cache_threshold=semantic_cache_threshold,
+            semantic_cache_size=semantic_cache_size,
+            semantic_cache_ttl=semantic_cache_ttl,
+            semantic_cache_file=semantic_cache_file,
         )
 
         # Settings loaded silently - no need to log

@@ -48,6 +48,7 @@ Welcome! I'm your AI-powered cryptocurrency analyst. I can help you analyze toke
 - Type your question naturally
 - Type 'exit' or 'quit' to end the session
 - Type 'clear' to reset the conversation
+- Type 'cache' or 'stats' to view cache statistics
 - Type 'help' for this message
 
 *Note: This is educational information, not financial advice. Cryptocurrency investments are risky. Always DYOR (Do Your Own Research).*
@@ -84,6 +85,7 @@ I remember our conversation context! You can ask:
 **Commands:**
 - `exit` or `quit` - End the session
 - `clear` - Reset conversation memory
+- `cache` or `stats` - View semantic cache statistics
 - `help` - Show this help message
 
 **Tips:**
@@ -94,6 +96,34 @@ I remember our conversation context! You can ask:
 
         self.console.print(
             Panel(Markdown(help_text), border_style="yellow", padding=(1, 2))
+        )
+
+    def _print_cache_stats(self) -> None:
+        """Print semantic cache statistics."""
+        if not self.agent:
+            self.console.print("[red]Agent not initialized[/red]")
+            return
+
+        stats = self.agent.get_cache_stats()
+        if not stats.get("enabled", False):
+            self.console.print("[yellow]Semantic cache is not enabled[/yellow]")
+            return
+
+        stats_text = f"""
+# Semantic Cache Statistics
+
+**Cache Status:**
+- Size: {stats.get('size', 0)} / {stats.get('max_size', 0)} entries
+- Total Hits: {stats.get('total_hits', 0)}
+- Average Hits per Entry: {stats.get('average_hits_per_entry', 0):.2f}
+
+**Configuration:**
+- Similarity Threshold: {stats.get('similarity_threshold', 0):.2f}
+- TTL: {stats.get('ttl_seconds', 0)} seconds ({stats.get('ttl_seconds', 0) // 60} minutes)
+        """
+
+        self.console.print(
+            Panel(Markdown(stats_text), border_style="blue", padding=(1, 2))
         )
 
     def _initialize_agent(self) -> bool:
@@ -178,6 +208,10 @@ I remember our conversation context! You can ask:
 
                 elif user_input_lower in ["help", "h", "?"]:
                     self._print_help()
+                    continue
+
+                elif user_input_lower in ["cache", "stats"]:
+                    self._print_cache_stats()
                     continue
 
                 # Process user input with agent

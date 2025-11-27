@@ -13,6 +13,7 @@ from src.agents.tools import create_agent_tools
 from src.agents.prompts import get_system_prompt
 from src.core.logging_config import get_logger
 from src.core.progress import get_progress_logger
+from src.core.semantic_cache import SemanticCache
 
 logger = get_logger(__name__)
 progress = get_progress_logger()
@@ -33,33 +34,49 @@ class CryptoAnalysisAgent:
         """
         self.settings = settings
         self.analysis_history: Dict[str, Dict[str, Any]] = {}
-        self.conversation_messages: List[BaseMessage] = []  # Store conversation history
+        self.conversation_messages: List[BaseMessage] = []
+
+        self.semantic_cache = None
+        if settings.semantic_cache_enabled:
+            try:
+                self.semantic_cache = SemanticCache(
+                    api_key=settings.openai_api_key,
+                    similarity_threshold=settings.semantic_cache_threshold,
+                    max_cache_size=settings.semantic_cache_size,
+                    ttl=settings.semantic_cache_ttl,
+                    cache_file=settings.semantic_cache_file,
+                )
+                cache_size = len(self.semantic_cache._cache)
+                if cache_size > 0:
+                    progress.info(
+                        f"Semantic cache initialized with {cache_size} entries from file"
+                    )
+                else:
+                    progress.info("Semantic cache initialized")
+            except Exception as e:
+                logger.warning(f"Failed to initialize semantic cache: {e}")
+                self.semantic_cache = None
 
         progress.info("Initializing crypto analysis agent...")
 
-        # Initialize dependencies
         self.coin_repository = CoinRepository(
             cache_ttl=settings.cache_ttl, newsapi_key=settings.newsapi_key
         )
         self.coin_service = CoinService(self.coin_repository)
         self.analysis_service = AnalysisService(self.coin_repository)
 
-        # Initialize LLM
         self.llm = ChatOpenAI(
             temperature=0.7,
             model=settings.openai_model,
             openai_api_key=settings.openai_api_key,
         )
 
-        # Create tools
         self.tools = create_agent_tools(
             self.coin_service, self.analysis_service, self.analysis_history
         )
 
-        # Create agent using new langchain 1.0.x API
         system_prompt = get_system_prompt()
         try:
-            # Disable debug mode to suppress verbose LangChain output
             self.agent = create_agent(
                 model=self.llm,
                 tools=self.tools,
@@ -88,21 +105,26 @@ class CryptoAnalysisAgent:
         if not user_input or not user_input.strip():
             raise ValueError("User input cannot be empty")
 
+        is_standalone = len(self.conversation_messages) == 0
+
+        if self.semantic_cache and is_standalone:
+            cached_response = self.semantic_cache.get(user_input)
+            if cached_response:
+                progress.cache("Using cached response from semantic cache")
+                self.conversation_messages.append(HumanMessage(content=user_input))
+                self.conversation_messages.append(AIMessage(content=cached_response))
+                return cached_response
+
         try:
-            # Add user message to conversation history
             user_message = HumanMessage(content=user_input)
             self.conversation_messages.append(user_message)
 
-            # Use the new agent API with full conversation history
             result = self.agent.invoke({"messages": self.conversation_messages})
 
-            # Extract the response from the result
             response_text = ""
             if isinstance(result, dict):
                 messages = result.get("messages", [])
                 if messages:
-                    # The agent returns all messages including new ones
-                    # Find new messages that aren't in our history yet
                     existing_count = len(self.conversation_messages)
                     new_messages = (
                         messages[existing_count:]
@@ -110,7 +132,6 @@ class CryptoAnalysisAgent:
                         else []
                     )
 
-                    # Find the last AI message (response)
                     for msg in reversed(new_messages):
                         if isinstance(msg, AIMessage) or (
                             hasattr(msg, "content")
@@ -120,7 +141,6 @@ class CryptoAnalysisAgent:
                                 response_text = str(msg.content)
                                 break
 
-                    # If no new messages found, check the last message in the result
                     if not response_text and messages:
                         last_msg = messages[-1]
                         if isinstance(last_msg, AIMessage) or (
@@ -130,11 +150,9 @@ class CryptoAnalysisAgent:
                             if hasattr(last_msg, "content"):
                                 response_text = str(last_msg.content)
 
-                    # Update conversation history with new messages
                     if new_messages:
                         self.conversation_messages.extend(new_messages)
                     elif not response_text and messages:
-                        # Fallback: add the last message if it's new
                         last_msg = messages[-1]
                         if (
                             len(self.conversation_messages) == 0
@@ -148,9 +166,14 @@ class CryptoAnalysisAgent:
                     response_text = str(result)
             else:
                 response_text = str(result)
-                # Add as AI message if we got a string response
                 if response_text:
                     self.conversation_messages.append(AIMessage(content=response_text))
+
+            if response_text and self.semantic_cache:
+                try:
+                    self.semantic_cache.set(user_input, response_text)
+                except Exception as e:
+                    logger.warning(f"Failed to save to semantic cache: {e}")
 
             return (
                 response_text
@@ -158,9 +181,7 @@ class CryptoAnalysisAgent:
                 else "I apologize, but I couldn't generate a response. Please try rephrasing your question."
             )
         except Exception as e:
-            error_msg = f"I encountered an error: {str(e)}\n\nPlease try rephrasing your question or ask something else."
-            # Don't store error messages in conversation history
-            return error_msg
+            return f"I encountered an error: {str(e)}\n\nPlease try rephrasing your question or ask something else."
 
     def reset_conversation(self) -> None:
         """
@@ -171,3 +192,9 @@ class CryptoAnalysisAgent:
         progress.info("Resetting conversation history")
         self.conversation_messages.clear()
         self.analysis_history.clear()
+
+    def get_cache_stats(self) -> Dict[str, Any]:
+        """Get semantic cache statistics."""
+        if self.semantic_cache:
+            return self.semantic_cache.get_stats()
+        return {"enabled": False}

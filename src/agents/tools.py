@@ -64,13 +64,12 @@ def handle_tool_errors(func: Callable) -> Callable:
             progress.error(f"Analysis error in {e.analysis_type} analysis: {str(e)}")
             return f"Error in {e.analysis_type} analysis: {str(e)}"
         except APIError as e:
-            # Handle API errors, especially rate limits
             if e.status_code == 429:
                 progress.warning(
                     "Rate limit exceeded. Please wait 1-2 minutes and try again."
                 )
                 return (
-                    "⚠️ Rate limit exceeded: The API is temporarily unavailable due to too many requests. "
+                    "Rate limit exceeded: The API is temporarily unavailable due to too many requests. "
                     "Please wait 1-2 minutes and try again. "
                     "The application uses caching to minimize API calls."
                 )
@@ -213,18 +212,18 @@ def create_agent_tools(
         parts = [f"**{coin_name} ({symbol}) - Current Market Data:**\n"]
 
         if (current_price := data.get("current_price")) is not None:
-            parts.append(f"💰 **Current Price:** ${current_price:,.2f}")
+            parts.append(f"**Current Price:** ${current_price:,.2f}")
 
         if (market_cap := data.get("market_cap")) is not None:
             rank = data.get("market_cap_rank", "N/A")
-            parts.append(f"📊 **Market Cap:** ${market_cap:,.0f} (Rank: #{rank})")
+            parts.append(f"**Market Cap:** ${market_cap:,.0f} (Rank: #{rank})")
 
         if (volume_24h := data.get("total_volume")) is not None:
-            parts.append(f"📈 **24h Volume:** ${volume_24h:,.0f}")
+            parts.append(f"**24h Volume:** ${volume_24h:,.0f}")
 
         if (change_24h := data.get("price_change_percentage_24h")) is not None:
-            change_symbol = "📈" if change_24h >= 0 else "📉"
-            parts.append(f"{change_symbol} **24h Change:** {change_24h:+.2f}%")
+            change_symbol = "+" if change_24h >= 0 else ""
+            parts.append(f"**24h Change:** {change_symbol}{change_24h:+.2f}%")
 
         high_24h = data.get("high_24h")
         low_24h = data.get("low_24h")

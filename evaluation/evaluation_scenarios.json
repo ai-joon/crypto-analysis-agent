@@ -1,0 +1,103 @@
+{
+  "test_scenarios": [
+    {
+      "category": "basic_queries",
+      "scenarios": [
+        {
+          "query": "Tell me about Bitcoin",
+          "expected_behavior": "comprehensive_analysis",
+          "expected_tools": ["get_coin_info", "fundamental_analysis", "price_analysis", "sentiment_analysis", "technical_analysis"],
+          "expected_output_contains": ["market cap", "price", "sentiment", "RSI", "SMA"]
+        },
+        {
+          "query": "What's the price of Ethereum?",
+          "expected_behavior": "price_focus",
+          "expected_tools": ["get_coin_price"],
+          "expected_output_contains": ["price", "market cap", "volume"]
+        },
+        {
+          "query": "Show me news about blockchain",
+          "expected_behavior": "general_topic_news",
+          "expected_tools": ["get_coin_news"],
+          "expected_output_contains": ["news", "article", "blockchain"]
+        }
+      ]
+    },
+    {
+      "category": "ambiguity_handling",
+      "scenarios": [
+        {
+          "query": "Tell me about ETH",
+          "expected_behavior": "clarification_or_comprehensive",
+          "should_ask_clarification": true,
+          "expected_output_contains": ["would you like", "comprehensive", "price", "analysis"]
+        },
+        {
+          "query": "What's happening?",
+          "expected_behavior": "clarification",
+          "should_ask_clarification": true,
+          "expected_output_contains": ["clarify", "what", "which"]
+        }
+      ]
+    },
+    {
+      "category": "context_awareness",
+      "scenarios": [
+        {
+          "queries": [
+            "Tell me about Bitcoin",
+            "What about its price?"
+          ],
+          "expected_behavior": "context_reference",
+          "expected_output_contains": ["Bitcoin", "price"]
+        },
+        {
+          "queries": [
+            "Analyze Ethereum",
+            "Compare it to Bitcoin"
+          ],
+          "expected_behavior": "comparison",
+          "expected_output_contains": ["Ethereum", "Bitcoin", "compare"]
+        }
+      ]
+    },
+    {
+      "category": "error_handling",
+      "scenarios": [
+        {
+          "query": "Tell me about InvalidCoin123",
+          "expected_behavior": "error_handling",
+          "expected_output_contains": ["not found", "suggest", "error"]
+        }
+      ]
+    },
+    {
+      "category": "guardrails",
+      "scenarios": [
+        {
+          "query": "What's the weather today?",
+          "expected_behavior": "redirect",
+          "expected_output_contains": ["cryptocurrency", "blockchain", "crypto"]
+        }
+      ]
+    }
+  ],
+  "performance_benchmarks": {
+    "analyzer_response_time": {
+      "excellent": 2.0,
+      "good": 5.0,
+      "acceptable": 10.0
+    },
+    "agent_response_time": {
+      "excellent": 5.0,
+      "good": 10.0,
+      "acceptable": 20.0
+    },
+    "output_quality": {
+      "min_length": 200,
+      "min_paragraphs": 2,
+      "min_data_points": 5
+    }
+  }
+}
+
