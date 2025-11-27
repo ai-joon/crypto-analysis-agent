@@ -330,12 +330,16 @@ The agent includes semantic caching to reduce API costs and improve response tim
 1. **Query Embedding**: Converts queries to embedding vectors using OpenAI's embedding model
 2. **Similarity Search**: Finds similar cached queries using cosine similarity
 3. **Threshold Matching**: Returns cached response if similarity exceeds threshold (default: 0.85)
-4. **Persistence**: Cache is saved to `semantic_cache.json` and persists across restarts
+4. **Expiration Validation**: Each cache entry has a 1-hour expiration deadline (configurable via `SEMANTIC_CACHE_TTL`)
+5. **Response Validation**: Invalid responses (errors, API failures) are automatically filtered and not cached
+6. **Persistence**: Cache is saved to `semantic_cache.json` and persists across restarts
 
 ### Benefits
 
 - **Cost Savings**: Reduces OpenAI API calls for similar queries
 - **Faster Responses**: Cached responses return instantly
+- **Data Quality**: Only valid responses are cached (errors and API failures are filtered)
+- **Automatic Expiration**: Entries expire after 1 hour to ensure data freshness
 - **Persistence**: Cache survives restarts - automatically loaded on startup
 - **Automatic**: Works transparently without code changes
 
@@ -384,9 +388,14 @@ View cache statistics in the CLI:
 
 Shows cache size, total hits, average hits per entry, and configuration settings.
 
-**Note**: Cache is only used for standalone queries (first query in a conversation). Multi-turn conversations bypass cache to maintain context.
+**Cache Behavior**:
+- Cache retrieval is only used for standalone queries (first query in a conversation) to maintain context accuracy
+- All queries are cached (not just the first one) for future use
+- Each cache entry includes an expiration timestamp (1 hour by default)
+- Invalid responses (errors, API failures) are automatically filtered and not cached
+- Expired entries are automatically removed when accessed
 
-**Cache File**: The cache file `semantic_cache.json` is automatically created in the project root when the semantic cache is initialized. It will be empty initially and populated as queries are cached.
+**Cache File**: The cache file `semantic_cache.json` is automatically created in the project root when the semantic cache is initialized. It stores query-response pairs with embeddings, timestamps, expiration deadlines, and hit counts.
 
 ## Example Conversations
 
@@ -503,5 +512,6 @@ crypto-analysis-agent/
 3. **Historical Data**: Limited to data available from CoinGecko
 4. **Sentiment Analysis**: Based on available social metrics (may not include all platforms)
 5. **Semantic Cache**: Requires OpenAI API key for embedding generation (small cost per query)
-6. **Not Financial Advice**: This tool is for educational purposes only
+6. **Cache Expiration**: Cached responses expire after 1 hour (configurable) to ensure data freshness
+7. **Not Financial Advice**: This tool is for educational purposes only
 
