@@ -25,6 +25,9 @@ class Settings:
     semantic_cache_size: int = 1000
     semantic_cache_ttl: int = 3600
     semantic_cache_file: Optional[str] = None
+    langsmith_enabled: bool = False
+    langsmith_api_key: Optional[str] = None
+    langsmith_project: Optional[str] = None
 
     def __post_init__(self):
         """Validate settings after initialization."""
@@ -66,6 +69,11 @@ class Settings:
             raise ConfigurationError(
                 f"REQUEST_TIMEOUT must be positive, got {self.request_timeout}",
                 config_key="REQUEST_TIMEOUT",
+            )
+
+        if self.langsmith_enabled and not self.langsmith_api_key:
+            logger.warning(
+                "LangSmith is enabled but API key is not provided. Tracing will be disabled."
             )
 
     @classmethod
@@ -132,6 +140,16 @@ class Settings:
         semantic_cache_file = os.getenv("SEMANTIC_CACHE_FILE", "").strip()
         semantic_cache_file = semantic_cache_file if semantic_cache_file else None
 
+        langsmith_enabled = os.getenv("LANGSMITH_ENABLED", "false").lower() in (
+            "true",
+            "1",
+            "yes",
+        )
+        langsmith_api_key = os.getenv("LANGSMITH_API_KEY", "").strip()
+        langsmith_api_key = langsmith_api_key if langsmith_api_key else None
+        langsmith_project = os.getenv("LANGSMITH_PROJECT", "").strip()
+        langsmith_project = langsmith_project if langsmith_project else None
+
         settings = cls(
             openai_api_key=openai_api_key.strip(),
             openai_model=os.getenv("OPENAI_MODEL", "gpt-4o-mini").strip(),
@@ -144,6 +162,9 @@ class Settings:
             semantic_cache_size=semantic_cache_size,
             semantic_cache_ttl=semantic_cache_ttl,
             semantic_cache_file=semantic_cache_file,
+            langsmith_enabled=langsmith_enabled,
+            langsmith_api_key=langsmith_api_key,
+            langsmith_project=langsmith_project,
         )
 
         # Settings loaded silently - no need to log
