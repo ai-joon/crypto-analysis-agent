@@ -105,7 +105,7 @@ The system is built with a modular architecture:
 
 See [ARCHITECTURE.md](ARCHITECTURE.md) for detailed architecture documentation.
 
-## 📋 Prerequisites
+## Prerequisites
 
 - Python 3.8 or higher
 - OpenAI API key (GPT-4 or GPT-3.5-turbo)

@@ -18,9 +18,9 @@ def main():
     env_file = project_root / ".env"
 
     if env_file.exists():
-        print(f"✅ Found .env file at: {env_file}")
+        print(f"Found .env file at: {env_file}")
     else:
-        print(f"❌ .env file not found at: {env_file}")
+        print(f"Error: .env file not found at: {env_file}")
         print(f"   Please create a .env file in the project root.")
         print(f"   You can copy env.template to .env:")
         print(f"   cp env.template .env")
@@ -30,7 +30,7 @@ def main():
     load_dotenv(dotenv_path=env_file)
 
     # Check required variables
-    print("\n📋 Checking environment variables:")
+    print("\nChecking environment variables:")
     print()
 
     required_vars = {
@@ -50,10 +50,10 @@ def main():
         if value:
             # Mask the key for security
             masked = value[:7] + "..." + value[-4:] if len(value) > 11 else "***"
-            print(f"  ✅ {var_name}: {masked}")
+            print(f"  OK {var_name}: {masked}")
             print(f"     {description}")
         else:
-            print(f"  ❌ {var_name}: NOT SET")
+            print(f"  ERROR {var_name}: NOT SET")
             print(f"     {description}")
             all_good = False
         print()
@@ -62,20 +62,20 @@ def main():
     for var_name, description in optional_vars.items():
         value = os.getenv(var_name)
         if value:
-            print(f"  ✅ {var_name}: Set")
+            print(f"  OK {var_name}: Set")
         else:
-            print(f"  ⚪ {var_name}: Not set (using default)")
+            print(f"  - {var_name}: Not set (using default)")
         print(f"     {description}")
         print()
 
     if all_good:
         print("=" * 60)
-        print("✅ All required environment variables are set!")
+        print("All required environment variables are set!")
         print("=" * 60)
         return 0
     else:
         print("=" * 60)
-        print("❌ Some required environment variables are missing.")
+        print("ERROR: Some required environment variables are missing.")
         print("   Please update your .env file and try again.")
         print("=" * 60)
         return 1

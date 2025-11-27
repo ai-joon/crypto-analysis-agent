@@ -13,6 +13,7 @@ from src.agents.tools import create_agent_tools
 from src.agents.prompts import get_system_prompt
 from src.core.logging_config import get_logger
 from src.core.progress import get_progress_logger
+from src.core.semantic_cache import SemanticCache
 
 logger = get_logger(__name__)
 progress = get_progress_logger()
@@ -34,6 +35,28 @@ class CryptoAnalysisAgent:
         self.settings = settings
         self.analysis_history: Dict[str, Dict[str, Any]] = {}
         self.conversation_messages: List[BaseMessage] = []  # Store conversation history
+
+        # Initialize semantic cache
+        self.semantic_cache = None
+        if settings.semantic_cache_enabled:
+            try:
+                self.semantic_cache = SemanticCache(
+                    api_key=settings.openai_api_key,
+                    similarity_threshold=settings.semantic_cache_threshold,
+                    max_cache_size=settings.semantic_cache_size,
+                    ttl=settings.semantic_cache_ttl,
+                    cache_file=settings.semantic_cache_file,
+                )
+                cache_size = len(self.semantic_cache._cache)
+                if cache_size > 0:
+                    progress.info(
+                        f"Semantic cache initialized with {cache_size} entries from file"
+                    )
+                else:
+                    progress.info("Semantic cache initialized")
+            except Exception as e:
+                logger.warning(f"Failed to initialize semantic cache: {e}")
+                self.semantic_cache = None
 
         progress.info("Initializing crypto analysis agent...")
 
@@ -87,6 +110,16 @@ class CryptoAnalysisAgent:
         """
         if not user_input or not user_input.strip():
             raise ValueError("User input cannot be empty")
+
+        # Check semantic cache for standalone queries (no conversation context)
+        if self.semantic_cache and len(self.conversation_messages) == 0:
+            cached_response = self.semantic_cache.get(user_input)
+            if cached_response:
+                progress.cache("Using cached response from semantic cache")
+                # Add to conversation history
+                self.conversation_messages.append(HumanMessage(content=user_input))
+                self.conversation_messages.append(AIMessage(content=cached_response))
+                return cached_response
 
         try:
             # Add user message to conversation history
@@ -152,6 +185,14 @@ class CryptoAnalysisAgent:
                 if response_text:
                     self.conversation_messages.append(AIMessage(content=response_text))
 
+            # Cache the response if it's a standalone query
+            if (
+                response_text
+                and self.semantic_cache
+                and len(self.conversation_messages) == 2
+            ):
+                self.semantic_cache.set(user_input, response_text)
+
             return (
                 response_text
                 if response_text
@@ -171,3 +212,9 @@ class CryptoAnalysisAgent:
         progress.info("Resetting conversation history")
         self.conversation_messages.clear()
         self.analysis_history.clear()
+
+    def get_cache_stats(self) -> Dict[str, Any]:
+        """Get semantic cache statistics."""
+        if self.semantic_cache:
+            return self.semantic_cache.get_stats()
+        return {"enabled": False}

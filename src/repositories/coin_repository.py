@@ -73,7 +73,7 @@ class CoinRepository:
         # Check cache first (even if expired) to avoid unnecessary API calls
         cached = self.cache.get(cache_key, allow_stale=True)
         if cached:
-            progress.info("Using cached coin data")
+            progress.cache("Using cached coin data")
             return cached
 
         progress.info(f"Fetching data for {coin_id}...")
@@ -86,7 +86,7 @@ class CoinRepository:
                 if e.status_code == 429:
                     cached = self.cache.get(cache_key, allow_stale=True)
                     if cached:
-                        progress.warning("Using cached data due to rate limit")
+                        progress.cache("Using cached data due to rate limit")
                         return cached
                 raise
 
@@ -249,7 +249,7 @@ class CoinRepository:
         cache_key = f"news_{coin_name.lower()}_{coin_symbol.lower()}"
         cached = self.cache.get(cache_key)
         if cached:
-            progress.info(f"Using cached news for {coin_name}")
+            progress.cache(f"Using cached news for {coin_name}")
             return cached
 
         # Cache news for 1 hour (news doesn't change that frequently)

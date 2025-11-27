@@ -63,7 +63,7 @@ class ProgressLogger:
         self.use_colors = use_colors if use_colors is not None else _supports_color()
 
     def _print(
-        self, message: str, prefix: str = "→", color: Optional[str] = None
+        self, message: str, prefix: str = "", color: Optional[str] = None
     ) -> None:
         """
         Print a progress message with optional color.
@@ -99,7 +99,7 @@ class ProgressLogger:
             service: Name of the API service (e.g., "CoinGecko", "NewsAPI")
             action: Action being performed (default: "calling")
         """
-        self._print(f"{action} {service} API...", prefix="→", color=Colors.BRIGHT_CYAN)
+        self._print(f"{action} {service} API...", prefix="", color=Colors.BRIGHT_CYAN)
 
     def success(self, message: str) -> None:
         """
@@ -108,7 +108,7 @@ class ProgressLogger:
         Args:
             message: Success message
         """
-        self._print(f"✓ {message}", prefix="", color=Colors.BRIGHT_GREEN)
+        self._print(message, prefix="", color=Colors.BRIGHT_GREEN)
 
     def info(self, message: str) -> None:
         """
@@ -117,7 +117,7 @@ class ProgressLogger:
         Args:
             message: Info message
         """
-        self._print(message, prefix="→", color=Colors.BRIGHT_BLUE)
+        self._print(message, prefix="", color=Colors.BRIGHT_BLUE)
 
     def warning(self, message: str) -> None:
         """
@@ -126,7 +126,7 @@ class ProgressLogger:
         Args:
             message: Warning message
         """
-        self._print(f"⚠ {message}", prefix="", color=Colors.BRIGHT_YELLOW)
+        self._print(message, prefix="", color=Colors.BRIGHT_YELLOW)
 
     def error(self, message: str) -> None:
         """
@@ -135,7 +135,16 @@ class ProgressLogger:
         Args:
             message: Error message
         """
-        self._print(f"✗ {message}", prefix="", color=Colors.BRIGHT_RED)
+        self._print(message, prefix="", color=Colors.BRIGHT_RED)
+
+    def cache(self, message: str) -> None:
+        """
+        Log a cache-related message in red.
+
+        Args:
+            message: Cache message
+        """
+        self._print(message, prefix="", color=Colors.BRIGHT_RED)
 
 
 # Global progress logger instance
