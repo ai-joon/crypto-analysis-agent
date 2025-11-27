@@ -64,7 +64,6 @@ def handle_tool_errors(func: Callable) -> Callable:
             progress.error(f"Analysis error in {e.analysis_type} analysis: {str(e)}")
             return f"Error in {e.analysis_type} analysis: {str(e)}"
         except APIError as e:
-            # Handle API errors, especially rate limits
             if e.status_code == 429:
                 progress.warning(
                     "Rate limit exceeded. Please wait 1-2 minutes and try again."

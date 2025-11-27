@@ -151,6 +151,12 @@ OPENAI_API_KEY=sk-your-actual-api-key-here
 
 **Optional:**
 - `NEWSAPI_KEY`: NewsAPI key for cryptocurrency and blockchain news features (get it from https://newsapi.org/)
+- `OPENAI_MODEL`: Model to use (default: gpt-4o-mini)
+- `CACHE_TTL`: Cache duration in seconds (default: 300)
+- `SEMANTIC_CACHE_ENABLED`: Enable semantic caching (default: true)
+- `SEMANTIC_CACHE_THRESHOLD`: Similarity threshold for cache matching (default: 0.85)
+- `SEMANTIC_CACHE_SIZE`: Maximum cache entries (default: 1000)
+- `SEMANTIC_CACHE_TTL`: Cache time-to-live in seconds (default: 3600)
 - CoinGecko API is free and doesn't require a key for basic usage
 
 ### 4. Run the Application
@@ -159,7 +165,7 @@ OPENAI_API_KEY=sk-your-actual-api-key-here
 python main.py
 ```
 
-## 💡 Usage Examples
+## Usage Examples
 
 ### Basic Usage
 
@@ -257,7 +263,132 @@ Agent: [Searches for DeFi-related news and information]
   - Provides: Recent news articles, media coverage, blockchain technology news
   - Supports both specific cryptocurrency queries and general blockchain topics
 
-## 🧪 Example Conversations
+## Evaluation Framework
+
+The project includes a comprehensive evaluation framework to assess agent performance and accuracy.
+
+### Performance Evaluation
+
+Evaluates agent performance across multiple dimensions:
+
+- **Component Testing**: Individual analyzer components (fundamental, price, sentiment, technical)
+- **Integration Testing**: Agent conversational responses and tool selection
+- **Memory Testing**: Conversation context and analysis history retention
+- **Performance Metrics**: Response times, success rates, and overall scores
+
+**Run Performance Evaluation:**
+```bash
+python run_evaluation.py --type performance
+```
+
+Generates `evaluation_report.json` with detailed metrics including:
+- Analyzer success rates and response times
+- Agent query handling performance
+- Memory persistence verification
+- Overall performance score
+
+### Accuracy Evaluation (LLM-as-a-Judge)
+
+Uses an LLM-as-a-Judge architecture to evaluate response quality:
+
+- **Test Questions**: Common questions and edge cases from `evaluation/test_questions.json`
+- **Evaluation Criteria**: Accuracy, completeness, relevance, tool selection, clarity
+- **Scoring**: 0.0-1.0 scale (Poor to Excellent)
+- **Multi-turn Scenarios**: Tests conversation context maintenance
+
+**Run Accuracy Evaluation:**
+```bash
+python run_evaluation.py --type accuracy
+
+# Or run both evaluations
+python run_evaluation.py --type both
+
+# Use different judge model
+python run_evaluation.py --type accuracy --judge-model gpt-4
+```
+
+Generates `accuracy_evaluation_report.json` with:
+- Individual question scores and feedback
+- Category breakdown (comprehensive_analysis, price_query, etc.)
+- Performance tier distribution
+- Overall accuracy statistics
+
+### Evaluation Reports
+
+Both evaluations generate detailed JSON reports:
+- `evaluation_report.json`: Performance metrics and component tests
+- `accuracy_evaluation_report.json`: Accuracy scores and LLM judge feedback
+
+See `evaluation/README.md` and `evaluation/README_ACCURACY.md` for detailed documentation.
+
+## Semantic Caching
+
+The agent includes semantic caching to reduce API costs and improve response times by reusing similar responses.
+
+### How It Works
+
+1. **Query Embedding**: Converts queries to embedding vectors using OpenAI's embedding model
+2. **Similarity Search**: Finds similar cached queries using cosine similarity
+3. **Threshold Matching**: Returns cached response if similarity exceeds threshold (default: 0.85)
+4. **Persistence**: Cache is saved to `semantic_cache.json` and persists across restarts
+
+### Benefits
+
+- **Cost Savings**: Reduces OpenAI API calls for similar queries
+- **Faster Responses**: Cached responses return instantly
+- **Persistence**: Cache survives restarts - automatically loaded on startup
+- **Automatic**: Works transparently without code changes
+
+### Configuration
+
+Add to your `.env` file:
+
+```bash
+# Enable/disable semantic cache
+SEMANTIC_CACHE_ENABLED=true
+
+# Similarity threshold (0.0-1.0)
+# Higher = more strict matching, Lower = more lenient matching
+SEMANTIC_CACHE_THRESHOLD=0.85
+
+# Maximum number of cached entries
+SEMANTIC_CACHE_SIZE=1000
+
+# Time-to-live in seconds (default: 1 hour)
+SEMANTIC_CACHE_TTL=3600
+
+# Optional: Custom cache file path
+# SEMANTIC_CACHE_FILE=./cache/semantic_cache.json
+```
+
+### Usage
+
+Semantic cache is automatically enabled when `SEMANTIC_CACHE_ENABLED=true`. It works transparently:
+
+1. **First Query**: "Tell me about Bitcoin"
+   - Cache miss → LLM call → Response cached
+
+2. **Similar Query**: "What can you tell me about Bitcoin?"
+   - Cache hit → Instant response (no LLM call)
+
+3. **Different Query**: "What's the price of Ethereum?"
+   - Cache miss → LLM call → New entry cached
+
+### Cache Statistics
+
+View cache statistics in the CLI:
+
+```
+> cache
+```
+
+Shows cache size, total hits, average hits per entry, and configuration settings.
+
+**Note**: Cache is only used for standalone queries (first query in a conversation). Multi-turn conversations bypass cache to maintain context.
+
+**Cache File**: The cache file `semantic_cache.json` is automatically created in the project root when the semantic cache is initialized. It will be empty initially and populated as queries are cached.
+
+## Example Conversations
 
 ### Example 1: Comprehensive Analysis
 
@@ -313,7 +444,7 @@ Bitcoin shows slightly stronger positive sentiment, but Ethereum has
 faster-growing social engagement...
 ```
 
-## 🎨 Project Structure
+## Project Structure
 
 ```
 crypto-analysis-agent/
@@ -323,6 +454,17 @@ crypto-analysis-agent/
 ├── .gitignore               # Git ignore rules
 ├── README.md                # This file
 ├── ARCHITECTURE.md          # Detailed architecture documentation
+├── run_evaluation.py        # Evaluation runner script
+├── check_env.py             # Environment configuration checker
+├── semantic_cache.json      # Semantic cache persistence file (auto-generated)
+├── evaluation/               # Evaluation framework
+│   ├── evaluate_agent.py    # Performance evaluation
+│   ├── evaluate_accuracy.py # Accuracy evaluation (LLM-as-a-Judge)
+│   ├── llm_judge.py         # LLM judge implementation
+│   ├── test_questions.json  # Test questions for accuracy evaluation
+│   ├── evaluation_scenarios.json # Test scenarios
+│   ├── README.md            # Evaluation documentation
+│   └── README_ACCURACY.md   # Accuracy evaluation documentation
 └── src/
     ├── __init__.py          # Package initialization
     ├── agents/              # Agent implementation
@@ -346,16 +488,20 @@ crypto-analysis-agent/
     ├── ui/                   # User interface
     │   └── cli.py
     └── core/                 # Core utilities
-        ├── cache.py
+        ├── cache.py          # TTL-based cache
+        ├── semantic_cache.py # Semantic caching with embeddings
         ├── exceptions.py
-        └── interfaces.py
+        ├── interfaces.py
+        ├── logging_config.py
+        └── progress.py
 ```
 
-## 🚧 Limitations
+## Limitations
 
 1. **API Rate Limits**: CoinGecko free tier has rate limits (~50 calls/minute)
 2. **Data Accuracy**: Real-time data depends on external API availability
 3. **Historical Data**: Limited to data available from CoinGecko
 4. **Sentiment Analysis**: Based on available social metrics (may not include all platforms)
-5. **Not Financial Advice**: This tool is for educational purposes only
+5. **Semantic Cache**: Requires OpenAI API key for embedding generation (small cost per query)
+6. **Not Financial Advice**: This tool is for educational purposes only
 

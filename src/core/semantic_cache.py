@@ -3,12 +3,15 @@
 import time
 import hashlib
 import json
+import logging
 from typing import Dict, Any, List, Optional, Tuple
 from dataclasses import dataclass
 from pathlib import Path
 from openai import OpenAI
 import numpy as np
 import os
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -19,6 +22,7 @@ class CachedResponse:
     response: str
     embedding: List[float]
     timestamp: float
+    expires_at: float
     hit_count: int = 0
 
 
@@ -66,6 +70,7 @@ class SemanticCache:
         self._cache_keys: List[str] = []
 
         self._load_from_file()
+        self._ensure_cache_file_exists()
 
     def _get_embedding(self, text: str) -> np.ndarray:
         """Get embedding for text."""
@@ -110,8 +115,8 @@ class SemanticCache:
 
     def _is_expired(self, cached_response: CachedResponse) -> bool:
         """Check if cached response is expired."""
-        age = time.time() - cached_response.timestamp
-        return age >= self.ttl
+        current_time = time.time()
+        return current_time >= cached_response.expires_at
 
     def _evict_oldest(self) -> None:
         """Evict oldest cache entry if at max size."""
@@ -149,7 +154,13 @@ class SemanticCache:
             match = self._find_similar_query(query_embedding)
 
             if match:
-                _, cached_response, _ = match
+                cache_key, cached_response, _ = match
+
+                if self._is_expired(cached_response):
+                    logger.debug("Cached response expired, removing from cache")
+                    self._remove(cache_key)
+                    return None
+
                 cached_response.hit_count += 1
                 return cached_response.response
         except Exception:
@@ -157,20 +168,60 @@ class SemanticCache:
 
         return None
 
+    def _is_valid_response(self, response: str) -> bool:
+        """Check if response is valid and should be cached."""
+        if not response or not response.strip():
+            return False
+
+        response_lower = response.lower()
+
+        error_patterns = [
+            "i encountered an error",
+            "i apologize, but i couldn't generate",
+            "api error",
+            "rate limit exceeded",
+            "could not find cryptocurrency",
+            "error in",
+            "an unexpected error occurred",
+            "please try again",
+            "please wait",
+            "temporarily unavailable",
+            "failed to",
+            "unable to",
+            "couldn't",
+            "could not",
+            "error occurred",
+            "encountered an error",
+        ]
+
+        for pattern in error_patterns:
+            if pattern in response_lower:
+                return False
+
+        if len(response.strip()) < 20:
+            return False
+
+        return True
+
     def set(self, query: str, response: str) -> None:
         """Cache a query-response pair."""
+        if not self._is_valid_response(response):
+            return
+
         self._cleanup_expired()
         self._evict_oldest()
 
         try:
             query_embedding = self._get_embedding(query)
             cache_key = hashlib.md5(query.encode()).hexdigest()
+            current_time = time.time()
 
             cached_response = CachedResponse(
                 query=query,
                 response=response,
                 embedding=query_embedding.tolist(),
-                timestamp=time.time(),
+                timestamp=current_time,
+                expires_at=current_time + self.ttl,
             )
 
             self._cache[cache_key] = cached_response
@@ -178,8 +229,9 @@ class SemanticCache:
             self._embeddings.append(query_embedding)
 
             self._save_to_file()
-        except Exception:
-            pass
+            logger.debug(f"Cached query-response pair: {query[:50]}...")
+        except Exception as e:
+            logger.warning(f"Failed to cache response: {e}", exc_info=True)
 
     def clear(self) -> None:
         """Clear all cached responses."""
@@ -207,7 +259,12 @@ class SemanticCache:
             current_time = time.time()
             for entry in data.get("entries", []):
                 timestamp = entry.get("timestamp", 0)
-                if current_time - timestamp >= self.ttl:
+                expires_at = entry.get("expires_at")
+
+                if not expires_at:
+                    expires_at = timestamp + self.ttl
+
+                if current_time >= expires_at:
                     continue
 
                 cache_key = entry.get("key")
@@ -219,6 +276,7 @@ class SemanticCache:
                     response=entry.get("response", ""),
                     embedding=entry.get("embedding", []),
                     timestamp=entry.get("timestamp", current_time),
+                    expires_at=expires_at,
                     hit_count=entry.get("hit_count", 0),
                 )
 
@@ -231,6 +289,25 @@ class SemanticCache:
         except (json.JSONDecodeError, KeyError, ValueError, OSError):
             pass
 
+    def _ensure_cache_file_exists(self) -> None:
+        """Ensure cache file exists with empty structure."""
+        if not self.cache_file.exists():
+            try:
+                data = {
+                    "version": "1.0",
+                    "entries": [],
+                    "metadata": {
+                        "similarity_threshold": self.similarity_threshold,
+                        "max_cache_size": self.max_cache_size,
+                        "ttl": self.ttl,
+                        "embedding_model": self.embedding_model,
+                    },
+                }
+                with open(self.cache_file, "w", encoding="utf-8") as f:
+                    json.dump(data, f, indent=2, ensure_ascii=False)
+            except (OSError, ValueError, TypeError):
+                pass
+
     def _save_to_file(self) -> None:
         """Save cache to JSON file."""
         try:
@@ -241,6 +318,7 @@ class SemanticCache:
                     "response": cached.response,
                     "embedding": cached.embedding,
                     "timestamp": cached.timestamp,
+                    "expires_at": cached.expires_at,
                     "hit_count": cached.hit_count,
                 }
                 for key, cached in self._cache.items()
@@ -262,8 +340,11 @@ class SemanticCache:
                 json.dump(data, f, indent=2, ensure_ascii=False)
 
             temp_file.replace(self.cache_file)
-        except (OSError, ValueError, TypeError):
-            pass
+            logger.debug(
+                f"Cache saved to {self.cache_file} with {len(entries)} entries"
+            )
+        except (OSError, ValueError, TypeError) as e:
+            logger.warning(f"Failed to save cache file: {e}", exc_info=True)
 
     def get_stats(self) -> Dict[str, Any]:
         """Get cache statistics."""

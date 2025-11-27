@@ -5,14 +5,12 @@ import os
 from typing import Optional
 
 
-# ANSI color codes
 class Colors:
     """ANSI color codes for terminal output."""
 
     RESET = "\033[0m"
     BOLD = "\033[1m"
 
-    # Text colors
     BLACK = "\033[30m"
     RED = "\033[31m"
     GREEN = "\033[32m"
@@ -22,7 +20,6 @@ class Colors:
     CYAN = "\033[36m"
     WHITE = "\033[37m"
 
-    # Bright colors
     BRIGHT_BLACK = "\033[90m"
     BRIGHT_RED = "\033[91m"
     BRIGHT_GREEN = "\033[92m"
@@ -35,16 +32,12 @@ class Colors:
 
 def _supports_color() -> bool:
     """Check if the terminal supports color output."""
-    # Check if we're in a terminal
     if not hasattr(sys.stdout, "isatty") or not sys.stdout.isatty():
         return False
 
-    # Check for Windows
     if os.name == "nt":
-        # Windows 10+ supports ANSI colors
         return os.getenv("TERM") != "dumb" or os.getenv("ANSICON") is not None
 
-    # Unix-like systems
     return True
 
 
