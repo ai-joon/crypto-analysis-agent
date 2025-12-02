@@ -1,5 +1,6 @@
 """Main agent class for cryptocurrency analysis."""
 
+import os
 from typing import Dict, Any, List
 from langchain.agents import create_agent
 from langchain_openai import ChatOpenAI
@@ -58,6 +59,9 @@ class CryptoAnalysisAgent:
                 self.semantic_cache = None
 
         progress.info("Initializing crypto analysis agent...")
+
+        if settings.langsmith_enabled:
+            self._setup_langsmith(settings)
 
         self.coin_repository = CoinRepository(
             cache_ttl=settings.cache_ttl, newsapi_key=settings.newsapi_key
@@ -192,6 +196,32 @@ class CryptoAnalysisAgent:
         progress.info("Resetting conversation history")
         self.conversation_messages.clear()
         self.analysis_history.clear()
+
+    def _setup_langsmith(self, settings: Settings) -> None:
+        """Setup LangSmith tracing for LangChain operations."""
+        if not settings.langsmith_api_key:
+            logger.warning(
+                "LangSmith enabled but API key not provided. Tracing will be disabled."
+            )
+            return
+
+        try:
+            os.environ["LANGCHAIN_TRACING_V2"] = "true"
+            os.environ["LANGCHAIN_API_KEY"] = settings.langsmith_api_key
+
+            if settings.langsmith_project:
+                os.environ["LANGCHAIN_PROJECT"] = settings.langsmith_project
+            else:
+                os.environ.pop("LANGCHAIN_PROJECT", None)
+
+            project_name = settings.langsmith_project or "default"
+            progress.info(f"LangSmith tracing enabled (project: {project_name})")
+            logger.info(f"LangSmith tracing configured for project: {project_name}")
+        except Exception as e:
+            logger.error(f"Failed to setup LangSmith tracing: {e}")
+            progress.warning(
+                "LangSmith tracing setup failed, continuing without tracing"
+            )
 
     def get_cache_stats(self) -> Dict[str, Any]:
         """Get semantic cache statistics."""

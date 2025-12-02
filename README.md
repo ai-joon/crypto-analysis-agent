@@ -14,6 +14,8 @@ An AI-powered conversational agent that provides comprehensive cryptocurrency an
 - **Guardrails**: Stays focused on cryptocurrency domain with polite redirection
 - **Ambiguity Handling**: Asks clarifying questions when queries are unclear or ambiguous
 - **General Topic Support**: Handles both specific cryptocurrency queries and general blockchain/crypto technology topics
+- **Multi-level Caching**: Combines TTL caching, semantic caching, and in-memory analysis history to reduce latency and API cost
+- **LangSmith Integration**: Optional workflow tracing and observability for debugging and monitoring
 
 ### Analysis Types Implemented
 
@@ -76,10 +78,10 @@ The system is built with a modular architecture:
 │  └───────┬───────┘  └───────┬───────┘  └────────┬────────┘ │
 │          │                   │                    │          │
 │  ┌───────▼───────┐  ┌───────▼────────────────────▼────────┐ │
-│  │   Technical   │  │        Data Fetcher                  │ │
-│  │   Analyzer    │  │  - CoinGecko API Integration         │ │
-│  └───────┬───────┘  │  - Data Caching                      │ │
-│          │          │  - Coin ID Resolution                │ │
+│  │   Technical   │  │      Coin Repository & API Clients   │ │
+│  │   Analyzer    │  │  - CoinGecko client                  │ │
+│  └───────┬───────┘  │  - Fear & Greed client               │ │
+│          │          │  - NewsAPI client                    │ │
 │          └──────────┴──────────────────────────────────────┘ │
 └─────────────────────────────────────────────────────────────┘
                             │
@@ -88,13 +90,16 @@ The system is built with a modular architecture:
                   │  External APIs      │
                   │  - CoinGecko        │
                   │  - Fear & Greed     │
+                  │  - NewsAPI          │
+                  │  - LangSmith*       │
                   └─────────────────────┘
+* LangSmith is used for tracing/observability rather than user-facing analysis
 ```
 
 ### Component Details
 
 1. **CLI Interface** (`src/ui/cli.py`): Rich console interface with markdown support
-2. **Agent** (`src/agents/agent.py`): LangChain-based conversational agent with OpenAI Functions
+2. **Agent** (`src/agents/agent.py`): LangChain-based conversational agent with OpenAI Functions and LangSmith tracing support
 3. **Repository** (`src/repositories/coin_repository.py`): API integration and data retrieval with caching
 4. **Analyzers** (`src/analyzers/`): Specialized analysis modules for each dimension:
    - `fundamental_analyzer.py`: Fundamental analysis
@@ -102,6 +107,7 @@ The system is built with a modular architecture:
    - `sentiment_analyzer.py`: Sentiment and social metrics analysis
    - `technical_analyzer.py`: Technical indicators analysis
 5. **Memory System**: Conversation history and analysis history for context retention
+6. **LangSmith Tracing**: Optional observability layer for monitoring agent workflows, tool calls, and performance
 
 See [ARCHITECTURE.md](ARCHITECTURE.md) for detailed architecture documentation.
 
@@ -157,6 +163,9 @@ OPENAI_API_KEY=sk-your-actual-api-key-here
 - `SEMANTIC_CACHE_THRESHOLD`: Similarity threshold for cache matching (default: 0.85)
 - `SEMANTIC_CACHE_SIZE`: Maximum cache entries (default: 1000)
 - `SEMANTIC_CACHE_TTL`: Cache time-to-live in seconds (default: 3600)
+- `LANGSMITH_ENABLED`: Enable LangSmith tracing (default: false)
+- `LANGSMITH_API_KEY`: LangSmith API key for workflow tracing (get it from https://smith.langchain.com/)
+- `LANGSMITH_PROJECT`: Project name for organizing traces (optional)
 - CoinGecko API is free and doesn't require a key for basic usage
 
 ### 4. Run the Application
@@ -262,6 +271,11 @@ Agent: [Searches for DeFi-related news and information]
   - Optional API key (set `NEWSAPI_KEY` in `.env`)
   - Provides: Recent news articles, media coverage, blockchain technology news
   - Supports both specific cryptocurrency queries and general blockchain topics
+
+- **LangSmith**: Observability and tracing platform (optional)
+  - Optional API key (set `LANGSMITH_API_KEY` in `.env`)
+  - Provides: Workflow tracing, performance monitoring, debugging tools
+  - Enables comprehensive observability for agent operations and tool calls
 
 ## Evaluation Framework
 
@@ -464,7 +478,6 @@ crypto-analysis-agent/
 ├── README.md                # This file
 ├── ARCHITECTURE.md          # Detailed architecture documentation
 ├── run_evaluation.py        # Evaluation runner script
-├── check_env.py             # Environment configuration checker
 ├── semantic_cache.json      # Semantic cache persistence file (auto-generated)
 ├── evaluation/               # Evaluation framework
 │   ├── evaluate_agent.py    # Performance evaluation
@@ -504,6 +517,67 @@ crypto-analysis-agent/
         ├── logging_config.py
         └── progress.py
 ```
+
+## LangSmith Tracing
+
+The agent supports LangSmith integration for workflow tracing and observability. LangSmith provides comprehensive monitoring and debugging capabilities for LangChain applications.
+
+### Features
+
+- **Workflow Visualization**: See the complete execution flow of agent interactions with detailed step-by-step breakdown
+- **Performance Monitoring**: Track latency, token usage, and costs for each operation
+- **Debugging**: Inspect tool calls, LLM requests, responses, and intermediate states
+- **Analytics**: Analyze patterns in agent behavior, tool usage frequency, and success rates
+- **Error Tracking**: Monitor errors and exceptions across all operations
+
+### Setup
+
+1. **Get LangSmith API Key**:
+   - Sign up at https://smith.langchain.com/
+   - Navigate to Settings → API Keys
+   - Create a new API key
+
+2. **Configure in `.env`**:
+```bash
+# Enable LangSmith tracing
+LANGSMITH_ENABLED=true
+
+# Your LangSmith API key (required when enabled)
+LANGSMITH_API_KEY=lsv2_pt_xxxxxxxxxxxxxxxxxxxxx
+
+# Optional: Project name for organizing traces
+# If not set, traces will go to your default project
+LANGSMITH_PROJECT=crypto-analysis-agent
+```
+
+3. **View Traces**: 
+   - Once enabled, all agent interactions are automatically traced
+   - Visit https://smith.langchain.com/ to view your traces
+   - Filter by project, date, or search for specific queries
+
+### What Gets Traced
+
+- **Agent Invocations**: Complete agent execution flow
+- **Tool Calls**: All tool invocations including:
+  - `get_coin_info` - Coin identification
+  - `get_coin_price` - Price data retrieval
+  - `get_coin_news` - News article fetching
+  - `fundamental_analysis` - Fundamental analysis
+  - `price_analysis` - Price trend analysis
+  - `sentiment_analysis` - Sentiment metrics
+  - `technical_analysis` - Technical indicators
+  - `get_previous_analysis` - Historical analysis retrieval
+- **LLM Requests**: All OpenAI API calls with prompts and responses
+- **Token Usage**: Input/output token counts and costs
+- **Latency Metrics**: Response times for each operation
+- **Error Handling**: Exceptions and error messages
+
+### Benefits
+
+- **Debug Issues**: Quickly identify where problems occur in the agent workflow
+- **Optimize Performance**: Find bottlenecks and optimize slow operations
+- **Monitor Costs**: Track token usage and API costs over time
+- **Improve Quality**: Analyze which tool combinations work best for different queries
 
 ## Limitations
 

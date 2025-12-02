@@ -33,7 +33,7 @@ The Crypto Token Analysis Chat Agent is a conversational AI system designed to p
 ┌─────────────────────────────────────────────────────────────────┐
 │                      Agent Orchestration Layer                   │
 │  ┌────────────────────────────────────────────────────────────┐ │
-│  │  LangChain Agent (src/agent.py)                            │ │
+│  │  LangChain Agent (`src/agents/agent.py`)                   │ │
 │  │  ┌──────────────────┐  ┌──────────────────────────────┐   │ │
 │  │  │ OpenAI Functions │  │ Conversation Memory          │   │ │
 │  │  │ Agent            │  │ - BufferMemory               │   │ │
@@ -44,6 +44,8 @@ The Crypto Token Analysis Chat Agent is a conversational AI system designed to p
 │  │  ┌──────────────────────────────────────────────────────┐ │ │
 │  │  │ Tool Registry                                         │ │ │
 │  │  │ - get_coin_info()                                    │ │ │
+│  │  │ - get_coin_price()                                   │ │ │
+│  │  │ - get_coin_news()                                    │ │ │
 │  │  │ - fundamental_analysis()                             │ │ │
 │  │  │ - price_analysis()                                   │ │ │
 │  │  │ - sentiment_analysis()                               │ │ │
@@ -93,23 +95,19 @@ The Crypto Token Analysis Chat Agent is a conversational AI system designed to p
 ┌─────────────────────────────────────────────────────────────────┐
 │                        Data Access Layer                         │
 │  ┌────────────────────────────────────────────────────────────┐ │
-│  │  Data Fetcher (src/data_fetcher.py)                        │ │
-│  │                                                             │ │
+│  │  Coin Repository (`src/repositories/coin_repository.py`)   │ │
 │  │  ┌──────────────────┐  ┌──────────────────────────────┐   │ │
 │  │  │ Coin ID          │  │ Cache Manager                 │   │ │
-│  │  │ Resolution       │  │ - 5-minute TTL               │   │ │
+│  │  │ Resolution       │  │ - 5-minute TTL (configurable) │   │ │
 │  │  │ - Symbol mapping │  │ - In-memory storage          │   │ │
 │  │  │ - API search     │  │ - Key-based retrieval        │   │ │
 │  │  └──────────────────┘  └──────────────────────────────┘   │ │
 │  │                                                             │ │
 │  │  ┌────────────────────────────────────────────────────────┐│ │
-│  │  │ API Methods                                            ││ │
-│  │  │ - get_current_price_data()                            ││ │
-│  │  │ - get_market_data()                                   ││ │
-│  │  │ - get_historical_prices()                             ││ │
-│  │  │ - get_community_data()                                ││ │
-│  │  │ - get_coin_description()                              ││ │
-│  │  │ - get_fear_greed_index()                              ││ │
+│  │  │ API Clients (`src/api/`)                               ││ │
+│  │  │ - CoinGeckoClient (price/market/history)              ││ │
+│  │  │ - FearGreedClient (Fear & Greed Index)                ││ │
+│  │  │ - NewsAPIClient (crypto & blockchain news)            ││ │
 │  │  └────────────────────────────────────────────────────────┘│ │
 │  └────────────────────────┬───────────────────────────────────┘ │
 └───────────────────────────┼─────────────────────────────────────┘

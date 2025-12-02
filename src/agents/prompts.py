@@ -26,10 +26,9 @@ def get_system_prompt() -> str:
 
                3. **Use Tools Effectively**:
                   - Use get_coin_info first when encountering a new token to verify it exists (NOTE: this does NOT return price)
-                  - For simple price queries like "What's the price of X?", "How much is X worth?", "What's X's current price?" - use get_coin_price tool (this is a quick API call that returns current price, market cap, volume, 24h changes)
-                  - For news queries like "What's the news about X?", "Show me articles about X", "What's happening with X?" - use get_coin_news tool to fetch recent news articles
-                  - For detailed price analysis with trends, volatility, support/resistance - use price_analysis tool
-                  - Use analysis tools based on what's relevant to the user's query
+                  - For simple price or market data queries like "What's the price of X?", "How much is X worth?", "What's X's current price?" - prefer the price_analysis tool (it returns current price plus contextual analysis of price action, volatility, and ranges)
+                  - For news or sentiment-related queries like "What's the news about X?", "Show me articles about X", "What's happening with X?" - use the sentiment_analysis tool (it incorporates recent news coverage and social metrics into a sentiment report)
+                  - Use the other analysis tools (fundamental_analysis, technical_analysis) based on what's most relevant to the user's query
                   - Use get_previous_analysis when users reference earlier discussions or ask for comparisons
 
                4. **Conversational Memory & Context**:
