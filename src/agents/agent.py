@@ -219,7 +219,9 @@ class CryptoAnalysisAgent:
             logger.info(f"LangSmith tracing configured for project: {project_name}")
         except Exception as e:
             logger.error(f"Failed to setup LangSmith tracing: {e}")
-            progress.warning("LangSmith tracing setup failed, continuing without tracing")
+            progress.warning(
+                "LangSmith tracing setup failed, continuing without tracing"
+            )
 
     def get_cache_stats(self) -> Dict[str, Any]:
         """Get semantic cache statistics."""

@@ -14,6 +14,7 @@ An AI-powered conversational agent that provides comprehensive cryptocurrency an
 - **Guardrails**: Stays focused on cryptocurrency domain with polite redirection
 - **Ambiguity Handling**: Asks clarifying questions when queries are unclear or ambiguous
 - **General Topic Support**: Handles both specific cryptocurrency queries and general blockchain/crypto technology topics
+- **Multi-level Caching**: Combines TTL caching, semantic caching, and in-memory analysis history to reduce latency and API cost
 - **LangSmith Integration**: Optional workflow tracing and observability for debugging and monitoring
 
 ### Analysis Types Implemented
@@ -77,10 +78,10 @@ The system is built with a modular architecture:
 │  └───────┬───────┘  └───────┬───────┘  └────────┬────────┘ │
 │          │                   │                    │          │
 │  ┌───────▼───────┐  ┌───────▼────────────────────▼────────┐ │
-│  │   Technical   │  │        Data Fetcher                  │ │
-│  │   Analyzer    │  │  - CoinGecko API Integration         │ │
-│  └───────┬───────┘  │  - Data Caching                      │ │
-│          │          │  - Coin ID Resolution                │ │
+│  │   Technical   │  │      Coin Repository & API Clients   │ │
+│  │   Analyzer    │  │  - CoinGecko client                  │ │
+│  └───────┬───────┘  │  - Fear & Greed client               │ │
+│          │          │  - NewsAPI client                    │ │
 │          └──────────┴──────────────────────────────────────┘ │
 └─────────────────────────────────────────────────────────────┘
                             │
@@ -89,7 +90,10 @@ The system is built with a modular architecture:
                   │  External APIs      │
                   │  - CoinGecko        │
                   │  - Fear & Greed     │
+                  │  - NewsAPI          │
+                  │  - LangSmith*       │
                   └─────────────────────┘
+* LangSmith is used for tracing/observability rather than user-facing analysis
 ```
 
 ### Component Details
