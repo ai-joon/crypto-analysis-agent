@@ -49,7 +49,6 @@ class SentimentAnalyzer(BaseAnalyzer):
             price_change_7d = market_data.get("price_change_percentage_7d", 0)
 
             # Fetch latest news articles using repository method
-            # This is the same underlying method used by coin_service.get_coin_news()
             # but we call it directly here since we already have coin_name and coin_symbol
             news_articles = self.repository.get_news_articles(
                 coin_name, coin_symbol, page_size=10

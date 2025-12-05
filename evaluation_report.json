@@ -1,0 +1,158 @@
+{
+  "timestamp": "2025-12-05T12:27:16.395372",
+  "component_tests": {
+    "analyzers": {
+      "bitcoin": {
+        "fundamental": {
+          "success": true,
+          "response_time": 3.2318718433380127,
+          "output_length": 1220,
+          "has_data_points": true,
+          "has_multiple_paragraphs": true,
+          "has_sections": true
+        },
+        "price": {
+          "success": true,
+          "response_time": 2.0221593379974365,
+          "output_length": 1233,
+          "has_data_points": true,
+          "has_multiple_paragraphs": true,
+          "has_sections": true
+        },
+        "sentiment": {
+          "success": true,
+          "response_time": 2.3932063579559326,
+          "output_length": 2028,
+          "has_data_points": true,
+          "has_multiple_paragraphs": true,
+          "has_sections": true
+        },
+        "technical": {
+          "success": true,
+          "response_time": 1.0546715259552002,
+          "output_length": 1206,
+          "has_data_points": true,
+          "has_multiple_paragraphs": true,
+          "has_sections": true
+        }
+      },
+      "ethereum": {
+        "fundamental": {
+          "success": false,
+          "error": "Could not find cryptocurrency: ethereum"
+        },
+        "price": {
+          "success": false,
+          "error": "Could not find cryptocurrency: ethereum"
+        },
+        "sentiment": {
+          "success": true,
+          "response_time": 18.422640562057495,
+          "output_length": 1942,
+          "has_data_points": true,
+          "has_multiple_paragraphs": true,
+          "has_sections": true
+        },
+        "technical": {
+          "success": true,
+          "response_time": 22.919280529022217,
+          "output_length": 222,
+          "has_data_points": false,
+          "has_multiple_paragraphs": false,
+          "has_sections": false
+        }
+      },
+      "solana": {
+        "fundamental": {
+          "success": false,
+          "error": "Could not find cryptocurrency: solana"
+        },
+        "price": {
+          "success": true,
+          "response_time": 20.390329837799072,
+          "output_length": 1219,
+          "has_data_points": true,
+          "has_multiple_paragraphs": true,
+          "has_sections": true
+        },
+        "sentiment": {
+          "success": true,
+          "response_time": 2.259993553161621,
+          "output_length": 2203,
+          "has_data_points": true,
+          "has_multiple_paragraphs": true,
+          "has_sections": true
+        },
+        "technical": {
+          "success": true,
+          "response_time": 22.939321041107178,
+          "output_length": 222,
+          "has_data_points": false,
+          "has_multiple_paragraphs": false,
+          "has_sections": false
+        }
+      }
+    }
+  },
+  "integration_tests": {
+    "agent_responses": {
+      "Tell me about Bitcoin": {
+        "success": true,
+        "response_time": 4.894914388656616,
+        "response_length": 296,
+        "asked_for_clarification": true,
+        "contains_analysis": true,
+        "expected_behavior": "comprehensive_analysis"
+      },
+      "What's the price of Ethereum?": {
+        "success": true,
+        "response_time": 27.567543268203735,
+        "response_length": 352,
+        "asked_for_clarification": false,
+        "contains_analysis": true,
+        "expected_behavior": "price_focus"
+      },
+      "Tell me about ETH": {
+        "success": true,
+        "response_time": 3.803975820541382,
+        "response_length": 292,
+        "asked_for_clarification": true,
+        "contains_analysis": true,
+        "expected_behavior": "clarification_or_analysis"
+      },
+      "What's happening with crypto?": {
+        "success": true,
+        "response_time": 3.5771024227142334,
+        "response_length": 297,
+        "asked_for_clarification": true,
+        "contains_analysis": true,
+        "expected_behavior": "general_topic"
+      }
+    },
+    "memory": {
+      "memory_persistence": {
+        "initial_messages": 2,
+        "after_followup": 6,
+        "memory_works": true
+      },
+      "analysis_history": {
+        "stores_analyses": true,
+        "stores_multiple_types": true
+      }
+    }
+  },
+  "performance_metrics": {
+    "analyzer_performance": {
+      "success_rate": 1.0,
+      "average_response_time": 10.625941620932686,
+      "total_tests": 9,
+      "successful_tests": 9
+    },
+    "agent_performance": {
+      "success_rate": 1.0,
+      "total_queries": 4,
+      "successful_queries": 4
+    },
+    "overall_score": 1.0
+  }
+}

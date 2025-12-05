@@ -560,8 +560,6 @@ LANGSMITH_PROJECT=crypto-analysis-agent
 - **Agent Invocations**: Complete agent execution flow
 - **Tool Calls**: All tool invocations including:
   - `get_coin_info` - Coin identification
-  - `get_coin_price` - Price data retrieval
-  - `get_coin_news` - News article fetching
   - `fundamental_analysis` - Fundamental analysis
   - `price_analysis` - Price trend analysis
   - `sentiment_analysis` - Sentiment metrics
