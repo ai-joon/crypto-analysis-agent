@@ -2,7 +2,6 @@
 
 import os
 from typing import Dict, Any, List
-from langchain.agents import create_agent
 from langchain_openai import ChatOpenAI
 from langchain_core.messages import HumanMessage, AIMessage, BaseMessage
 
@@ -81,13 +80,59 @@ class CryptoAnalysisAgent:
 
         system_prompt = get_system_prompt()
         try:
-            self.agent = create_agent(
-                model=self.llm,
-                tools=self.tools,
-                system_prompt=system_prompt,
-                debug=False,
-            )
-            progress.success(f"Agent initialized with {len(self.tools)} tools")
+            # Lazy import to avoid torch/transformers import issues at module level
+            # Use create_openai_tools_agent which is the modern API and may avoid torch dependency
+            try:
+                from langchain.agents import create_openai_tools_agent
+                from langchain.agents import AgentExecutor
+                from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
+                
+                prompt = ChatPromptTemplate.from_messages([
+                    ("system", system_prompt),
+                    MessagesPlaceholder(variable_name="messages"),
+                    MessagesPlaceholder(variable_name="agent_scratchpad"),
+                ])
+                
+                agent_runnable = create_openai_tools_agent(self.llm, self.tools, prompt)
+                self.agent = AgentExecutor(agent=agent_runnable, tools=self.tools, verbose=False)
+                progress.success(f"Agent initialized with {len(self.tools)} tools")
+            except (ImportError, OSError) as import_err:
+                # Fallback to create_agent if the modern API fails or doesn't exist
+                error_msg = str(import_err).lower()
+                if "create_openai_tools_agent" in error_msg or "cannot import name" in error_msg:
+                    # create_openai_tools_agent doesn't exist in this LangChain version, use create_agent
+                    progress.info("Using create_agent (create_openai_tools_agent not available in this LangChain version)")
+                    from langchain.agents import create_agent
+                    self.agent = create_agent(
+                        model=self.llm,
+                        tools=self.tools,
+                        system_prompt=system_prompt,
+                        debug=False,
+                    )
+                    progress.success(f"Agent initialized with {len(self.tools)} tools")
+                elif "torch" in error_msg or "dll" in error_msg or "1114" in error_msg:
+                    progress.warning("Encountered PyTorch import issue, trying fallback method...")
+                    try:
+                        from langchain.agents import create_agent
+                        self.agent = create_agent(
+                            model=self.llm,
+                            tools=self.tools,
+                            system_prompt=system_prompt,
+                            debug=False,
+                        )
+                        progress.success(f"Agent initialized with {len(self.tools)} tools (fallback method)")
+                    except (ImportError, OSError):
+                        progress.error(
+                            "Failed to import required dependencies due to PyTorch DLL issue.\n"
+                            "Try one of these solutions:\n"
+                            "1. Reinstall PyTorch: pip uninstall torch && pip install torch\n"
+                            "2. Install CPU-only PyTorch: pip install torch --index-url https://download.pytorch.org/whl/cpu\n"
+                            "3. Install Visual C++ Redistributables from Microsoft\n"
+                            "4. Update LangChain: pip install --upgrade langchain langchain-openai"
+                        )
+                        raise
+                else:
+                    raise
         except Exception as e:
             progress.error(f"Failed to initialize agent: {str(e)}")
             raise
